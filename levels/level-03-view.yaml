@@ -1,0 +1,61 @@
+chapter: 3
+chapterName: 查看与编辑
+levels:
+  - id: 14
+    title: 查看文件内容
+    description: 使用 cat 命令查看 welcome.txt 文件的内容
+    hint: cat 文件名 可以显示文件的全部内容
+    command: cat
+    validation:
+      type: command
+      expected: cat
+
+  - id: 15
+    title: 查看文件头尾
+    description: 使用 head 或 tail 命令查看文件的前几行或后几行
+    hint: |
+      head 文件名 显示前10行
+      tail 文件名 显示后10行
+      head -n 5 文件名 显示前5行
+    command: head
+    validation:
+      type: command
+      expected: head
+
+  - id: 16
+    title: 分页浏览
+    description: 使用 less 命令分页查看大文件
+    hint: less 文件名 可以分页查看文件，按空格下一页，按 q 退出
+    command: less
+    validation:
+      type: command
+      expected: less
+
+  - id: 17
+    title: 文本编辑器
+    description: 使用 nano 编辑器创建或编辑文件
+    hint: |
+      nano 文件名 打开编辑器
+      编辑完成后按 Ctrl+O 保存，Ctrl+X 退出
+    command: nano
+    validation:
+      type: command
+      expected: nano
+
+  - id: 18
+    title: 写入文件
+    description: 使用 echo 和 > 将文本写入文件
+    hint: echo "内容" > 文件名 可以将内容写入文件（会覆盖原内容）
+    command: echo
+    validation:
+      type: command
+      expected: >
+
+  - id: 19
+    title: 追加内容
+    description: 使用 echo 和 >> 向文件追加内容
+    hint: echo "内容" >> 文件名 可以在文件末尾追加内容（不会覆盖）
+    command: echo
+    validation:
+      type: command
+      expected: ">>"

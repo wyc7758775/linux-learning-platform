@@ -1,0 +1,15 @@
+{
+  "name": "linux-learning-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n frontend,backend -c blue,green \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install",
+    "build:docker": "cd docker && docker build -f Dockerfile.level -t linux-learning-level:latest ."
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

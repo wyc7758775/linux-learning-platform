@@ -1,0 +1,54 @@
+FROM alpine:3.19
+
+# Install necessary packages
+RUN apk add --no-cache \
+    bash \
+    coreutils \
+    findutils \
+    grep \
+    sed \
+    gawk \
+    curl \
+    wget \
+    nano \
+    vim \
+    procps \
+    htop \
+    tree \
+    less \
+    net-tools \
+    iputils \
+    shadow \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN adduser -D -s /bin/bash player && \
+    mkdir -p /home/player && \
+    chown -R player:player /home/player
+
+# Configure bash history for player user
+RUN echo 'export HISTFILE=/home/player/.bash_history' >> /home/player/.bashrc && \
+    echo 'export HISTSIZE=1000' >> /home/player/.bashrc && \
+    echo 'export HISTFILESIZE=2000' >> /home/player/.bashrc && \
+    echo 'PROMPT_COMMAND="history -a; history -c; history -r;$PROMPT_COMMAND"' >> /home/player/.bashrc && \
+    echo 'shopt -s histappend' >> /home/player/.bashrc && \
+    touch /home/player/.bash_history && \
+    chown player:player /home/player/.bash_history /home/player/.bashrc
+
+# Create some directories and files for exercises
+RUN mkdir -p /home/player/projects && \
+    mkdir -p /home/player/documents && \
+    mkdir -p /home/player/.config && \
+    echo "Welcome to Linux Learning Platform!" > /home/player/welcome.txt && \
+    echo "This is a sample text file." > /home/player/documents/readme.txt && \
+    echo "Hello World" > /home/player/hello.txt && \
+    chown -R player:player /home/player
+
+# Set working directory
+WORKDIR /home/player
+
+# Switch to non-root user
+USER player
+
+# Set default command
+CMD ["/bin/bash"]

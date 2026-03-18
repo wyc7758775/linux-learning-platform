@@ -1,0 +1,50 @@
+chapter: 1
+chapterName: 终端初识
+levels:
+  - id: 1
+    title: 你好，终端
+    description: 使用 ls 命令查看当前目录的内容
+    hint: 输入 ls 然后按回车键，ls 是 list 的缩写
+    command: ls
+    validation:
+      type: command
+      expected: ls
+
+  - id: 2
+    title: 我在哪里
+    description: 使用 pwd 命令查看当前工作目录的完整路径
+    hint: pwd 是 print working directory 的缩写，它会显示你当前所在的目录
+    command: pwd
+    validation:
+      type: output_contains
+      expected: /home/player
+
+  - id: 3
+    title: 切换目录
+    description: 使用 cd 命令切换到不同的目录
+    hint: |
+      cd ~ 可以回到用户主目录
+      cd .. 可以回到上一级目录
+      cd /path/to/dir 可以切换到指定目录
+    command: cd
+    validation:
+      type: command
+      expected: cd
+
+  - id: 4
+    title: 清空屏幕
+    description: 使用 clear 命令清空终端屏幕
+    hint: 当终端内容太多时，使用 clear 命令可以让屏幕变干净
+    command: clear
+    validation:
+      type: command
+      expected: clear
+
+  - id: 5
+    title: 命令历史
+    description: 使用 history 命令查看之前执行过的所有命令
+    hint: history 命令会显示你输入过的所有命令，每个命令前面有一个编号
+    command: history
+    validation:
+      type: command
+      expected: history

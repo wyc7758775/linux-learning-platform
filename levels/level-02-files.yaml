@@ -1,0 +1,82 @@
+chapter: 2
+chapterName: 文件操作
+levels:
+  - id: 6
+    title: 创建空文件
+    description: 使用 touch 命令创建一个名为 hello.txt 的空文件
+    hint: touch 文件名 可以创建一个空文件，如果文件已存在则更新时间戳
+    command: touch
+    validation:
+      type: file_exists
+      expected: /home/player/hello.txt
+
+  - id: 7
+    title: 创建目录
+    description: 使用 mkdir 命令创建一个名为 projects 的目录
+    hint: mkdir 目录名 可以创建一个新目录
+    command: mkdir
+    validation:
+      type: directory_exists
+      expected: /home/player/projects
+
+  - id: 8
+    title: 删除文件
+    description: |
+      首先创建一个 test.txt 文件，然后使用 rm 命令删除它
+    hint: rm 文件名 可以删除一个文件，删除后无法恢复！
+    command: rm
+    validation:
+      type: command
+      expected: rm
+
+  - id: 9
+    title: 删除空目录
+    description: |
+      创建一个 empty_dir 目录，然后使用 rmdir 命令删除它
+    hint: rmdir 目录名 只能删除空目录
+    command: rmdir
+    validation:
+      type: command
+      expected: rmdir
+
+  - id: 10
+    title: 递归删除目录
+    description: 使用 rm -r 命令删除一个包含文件的目录
+    hint: rm -r 目录名 可以删除目录及其所有内容，使用时要小心！
+    command: rm -r
+    validation:
+      type: command
+      expected: rm -r
+
+  - id: 11
+    title: 复制文件
+    description: 使用 cp 命令复制 welcome.txt 文件为 welcome_backup.txt
+    hint: cp 源文件 目标文件 可以复制文件
+    command: cp
+    validation:
+      type: command
+      expected: cp
+
+  - id: 12
+    title: 移动/重命名文件
+    description: 使用 mv 命令重命名或移动文件
+    hint: |
+      mv 旧文件名 新文件名 可以重命名文件
+      mv 文件名 目录名/ 可以移动文件到另一个目录
+    command: mv
+    validation:
+      type: command
+      expected: mv
+
+  - id: 13
+    title: 综合练习
+    description: |
+      完成以下任务：
+      1. 创建一个 work 目录
+      2. 在 work 目录中创建 notes.txt 文件
+      3. 复制 notes.txt 为 notes_backup.txt
+    hint: 分步执行，使用 cd 进入目录，然后使用 touch 和 cp
+    command: ""
+    validation:
+      type: directory_exists
+      expected: /home/player/work
