@@ -18,10 +18,7 @@ export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps)
           const chapterLevels = levels.filter(l => l.chapter === chapter)
           const chapterNames: Record<number, string> = {
             1: '终端初识',
-            2: '文件操作',
-            3: '查看与编辑',
-            4: '搜索与查找',
-            5: '管道与重定向',
+            2: '权限实战',
           }
 
           return (
