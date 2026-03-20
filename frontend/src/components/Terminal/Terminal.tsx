@@ -29,12 +29,17 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
   const fitAddonRef = useRef<FitAddon | null>(null)
   const inputBufferRef = useRef<string>('')
   const sessionIdRef = useRef<string>(sessionId)
+  const levelIdRef = useRef<number>(levelId)
   const currentDirRef = useRef<string>('/home/player')
 
-  // Keep sessionIdRef in sync with sessionId prop
+  // Keep sessionIdRef and levelIdRef in sync with props
   useEffect(() => {
     sessionIdRef.current = sessionId
   }, [sessionId])
+
+  useEffect(() => {
+    levelIdRef.current = levelId
+  }, [levelId])
 
   const handleResize = useCallback(() => {
     if (fitAddonRef.current && xtermRef.current) {
@@ -94,7 +99,7 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
             socket.emit('terminal:input', {
               sessionId: currentSessionId,
               command,
-              levelId
+              levelId: levelIdRef.current
             })
           } else {
             xterm.writeln('\x1b[31m错误: 未连接到会话\x1b[0m')
