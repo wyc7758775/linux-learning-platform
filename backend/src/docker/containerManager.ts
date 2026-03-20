@@ -15,6 +15,24 @@ export class ContainerManager {
   private sessions: Map<string, ContainerSession> = new Map()
   private imageName = 'linux-learning-level'
 
+  // Commands that require elevated privileges (sudo)
+  private readonly PRIVILEGED_COMMANDS = [
+    'adduser', 'useradd', 'userdel', 'usermod',
+    'groupadd', 'groupdel', 'groupmod',
+    'passwd', 'chown', 'chgrp',
+  ]
+
+  // Setup commands to run as root before handing control to player
+  // Each level may need a pre-configured environment
+  private readonly LEVEL_SETUP_COMMANDS: Record<number, string[]> = {
+    // Level 7: alice must already exist so player can add her to developers group
+    7: ['adduser -D alice'],
+    // Level 9: alice must exist for chown :developers to work
+    9: ['adduser -D alice'],
+    // Level 12: alice must exist
+    12: ['adduser -D alice'],
+  }
+
   constructor() {
     this.docker = new Docker()
   }
@@ -44,7 +62,7 @@ export class ContainerManager {
         AttachStdin: true,
         AttachStdout: true,
         AttachStderr: true,
-        User: 'player',
+        User: 'root',  // 以 root 运行，允许执行 adduser/groupadd 等命令
         WorkingDir: '/home/player',
         Env: [
           'TERM=xterm-256color',
@@ -58,6 +76,26 @@ export class ContainerManager {
       })
 
       await container.start()
+
+      // Run level-specific setup commands as root
+      const setupCommands = this.LEVEL_SETUP_COMMANDS[levelId]
+      if (setupCommands) {
+        for (const cmd of setupCommands) {
+          const exec = await container.exec({
+            Cmd: ['/bin/sh', '-c', cmd],
+            AttachStdout: true,
+            AttachStderr: true,
+            User: 'root',
+          })
+          const stream = await exec.start({ Detach: false })
+          await new Promise<void>((resolve) => {
+            stream.on('end', resolve)
+            stream.on('error', resolve)
+            stream.on('data', () => {})
+          })
+          console.log(`[Setup] Level ${levelId} setup: ${cmd}`)
+        }
+      }
 
       const session: ContainerSession = {
         id: sessionId,
@@ -110,6 +148,25 @@ export class ContainerManager {
       .join('\r\n')
   }
 
+  private elevatePrivilegedCommands(command: string): string {
+    // Split compound command by &&, ||, ; while preserving the separators
+    const parts = command.split(/(&&|\|\||;)/)
+    const elevated = parts.map((part, i) => {
+      // Odd-indexed parts are the separators (&&, ||, ;)
+      if (i % 2 === 1) return part
+      const trimmed = part.trim()
+      const needsSudo = this.PRIVILEGED_COMMANDS.some(cmd =>
+        trimmed.startsWith(cmd + ' ') || trimmed === cmd
+      )
+      if (needsSudo) {
+        // Replace leading whitespace + command with sudo version
+        return part.replace(trimmed, `/usr/bin/sudo ${trimmed}`)
+      }
+      return part
+    })
+    return elevated.join('')
+  }
+
   private async executeInContainer(session: ContainerSession, command: string): Promise<string> {
     const container = this.docker.getContainer(session.containerId)
 
@@ -120,8 +177,11 @@ export class ContainerManager {
         return this.handleCdCommand(session, cdMatch[1])
       }
 
+      // Elevate privileged sub-commands within compound commands (&&, ||, ;)
+      const elevatedCommand = this.elevatePrivilegedCommands(command)
+
       // Build the full command with cd prefix to maintain directory context
-      const fullCommand = `cd "${session.currentDir}" && ${command}`
+      const fullCommand = `cd "${session.currentDir}" && ${elevatedCommand}`
 
       console.log(`[Exec] Running: ${fullCommand}`)
 
@@ -137,17 +197,36 @@ export class ContainerManager {
 
       return new Promise((resolve, reject) => {
         let output = ''
+        let resolved = false
+
+        const done = () => {
+          if (!resolved) {
+            resolved = true
+            console.log(`[Exec] Output:`, JSON.stringify(output))
+            resolve(output)
+          }
+        }
 
         stream.on('data', (chunk: Buffer) => {
           output += chunk.toString()
         })
 
-        stream.on('end', () => {
-          console.log(`[Exec] Output:`, JSON.stringify(output))
-          resolve(output)
-        })
-
+        stream.on('end', done)
         stream.on('error', reject)
+
+        // Fallback: poll exec status in case TTY stream end event doesn't fire
+        const poll = setInterval(async () => {
+          try {
+            const info = await exec.inspect()
+            if (!info.Running) {
+              clearInterval(poll)
+              done()
+            }
+          } catch {
+            clearInterval(poll)
+            done()
+          }
+        }, 200)
       })
     } catch (error) {
       console.error('Failed to execute command:', error)
@@ -281,7 +360,8 @@ export class ContainerManager {
   }
 
   async getFileContent(sessionId: string, filePath: string): Promise<string> {
-    return this.executeCommand(sessionId, `cat ${filePath}`)
+    const result = await this.executeCommand(sessionId, `cat ${filePath}`)
+    return result.output
   }
 
   async checkDirectoryExists(sessionId: string, dirPath: string): Promise<boolean> {
@@ -333,5 +413,50 @@ export class ContainerManager {
       this.destroyContainer(sessionId)
     )
     await Promise.all(destroyPromises)
+  }
+
+  /**
+   * 获取文件或目录的权限（八进制格式，如 "644"）
+   */
+  async getFilePermission(sessionId: string, filePath: string): Promise<string> {
+    const result = await this.executeCommand(sessionId, `stat -c '%a' ${filePath}`)
+    return result.output.trim()
+  }
+
+  /**
+   * 获取文件或目录的属组
+   */
+  async getFileGroup(sessionId: string, filePath: string): Promise<string> {
+    const result = await this.executeCommand(sessionId, `stat -c '%G' ${filePath}`)
+    return result.output.trim()
+  }
+
+  /**
+   * 检查是否存在指定权限的文件（在 /home/player 目录下）
+   */
+  async checkPermissionExists(sessionId: string, permission: string): Promise<boolean> {
+    const result = await this.executeCommand(
+      sessionId,
+      `find /home/player -maxdepth 1 -type f -perm ${permission} 2>/dev/null | head -1`
+    )
+    return result.output.trim().length > 0
+  }
+
+  /**
+   * 检查用户是否存在
+   */
+  async checkUserExists(sessionId: string, username: string): Promise<boolean> {
+    const result = await this.executeCommand(sessionId, `id ${username} 2>/dev/null`)
+    return result.output.includes(`uid=`)
+  }
+
+  /**
+   * 检查用户是否在指定组中
+   */
+  async checkUserInGroup(sessionId: string, username: string, groupname: string): Promise<boolean> {
+    // 使用 groups 命令检查用户所属组
+    const result = await this.executeCommand(sessionId, `groups ${username} 2>/dev/null`)
+    console.log(`[checkUserInGroup] groups output: ${JSON.stringify(result.output)}, checking for: ${groupname}`)
+    return result.output.includes(groupname)
   }
 }

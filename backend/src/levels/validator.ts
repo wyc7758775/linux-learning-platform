@@ -1,62 +1,26 @@
 import { ContainerManager } from '../docker/containerManager.js'
 
 interface ValidationRule {
-  type: 'command' | 'output_contains' | 'file_exists' | 'file_content' | 'directory_exists'
+  type: 'command' | 'output_contains' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group'
   expected: string
 }
 
 // Level validation rules
 const LEVEL_VALIDATIONS: Record<number, ValidationRule> = {
+  // Chapter 1: 基础命令
   1: { type: 'command', expected: 'ls' },
   2: { type: 'output_contains', expected: '/home/player' },
   3: { type: 'command', expected: 'cd' },
   4: { type: 'command', expected: 'clear' },
   5: { type: 'command', expected: 'history' },
-  6: { type: 'file_exists', expected: '/home/player/hello.txt' },
-  7: { type: 'directory_exists', expected: '/home/player/projects' },
-  8: { type: 'command', expected: 'rm' },
-  9: { type: 'command', expected: 'rmdir' },
-  10: { type: 'command', expected: 'rm -r' },
-  11: { type: 'command', expected: 'cp' },
-  12: { type: 'command', expected: 'mv' },
-  13: { type: 'output_contains', expected: 'success' },
-  14: { type: 'command', expected: 'cat' },
-  15: { type: 'command', expected: 'head' },
-  16: { type: 'command', expected: 'less' },
-  17: { type: 'command', expected: 'nano' },
-  18: { type: 'command', expected: '>' },
-  19: { type: 'command', expected: '>>' },
-  20: { type: 'command', expected: 'find' },
-  21: { type: 'command', expected: '-type' },
-  22: { type: 'command', expected: 'grep' },
-  23: { type: 'command', expected: 'grep -r' },
-  24: { type: 'command', expected: 'wc' },
-  25: { type: 'command', expected: '|' },
-  26: { type: 'command', expected: '>' },
-  27: { type: 'command', expected: '>>' },
-  28: { type: 'command', expected: '<' },
-  29: { type: 'command', expected: '2>' },
-  30: { type: 'command', expected: 'chmod' },
-  31: { type: 'command', expected: 'chmod' },
-  32: { type: 'command', expected: 'chown' },
-  33: { type: 'command', expected: 'chgrp' },
-  34: { type: 'file_exists', expected: '/home/player/backup.sh' },
-  35: { type: 'command', expected: 'ps' },
-  36: { type: 'command', expected: 'top' },
-  37: { type: 'command', expected: 'kill' },
-  38: { type: 'command', expected: '&' },
-  39: { type: 'command', expected: 'curl' },
-  40: { type: 'command', expected: 'ping' },
-  41: { type: 'command', expected: 'df' },
-  42: { type: 'command', expected: 'uname' },
-  43: { type: 'file_exists', expected: '/home/player/script.sh' },
-  44: { type: 'file_exists', expected: '/home/player/conditional.sh' },
-  45: { type: 'file_exists', expected: '/home/player/loop.sh' },
-  46: { type: 'file_exists', expected: '/home/player/function.sh' },
-  47: { type: 'file_exists', expected: '/home/player/backup.sh' },
-  48: { type: 'command', expected: 'sed' },
-  49: { type: 'file_exists', expected: '/home/player/automate.sh' },
-  50: { type: 'file_exists', expected: '/home/player/challenge.sh' },
+  // Chapter 2: 权限实战
+  6: { type: 'user_exists', expected: 'alice' },  // 新同事入职 - 验证用户是否存在
+  7: { type: 'user_in_group', expected: 'alice:developers' },  // 部门分组 - 验证用户在组中
+  8: { type: 'file_permission', expected: '/home/player/salary.txt:600' },  // 机密泄露
+  9: { type: 'directory_permission', expected: '/home/player/project:775:developers' },  // 协作项目
+  10: { type: 'file_permission', expected: '/home/player/deploy.sh:755' },  // 脚本跑不起来
+  11: { type: 'permission_exists', expected: '750' },  // 权限解密
+  12: { type: 'directory_permission', expected: '/home/player/shared:764:developers' },  // 最终挑战
 }
 
 export async function validateLevel(
@@ -71,11 +35,14 @@ export async function validateLevel(
     return false
   }
 
+  console.log(`[Validator] Level ${levelId}, type: ${validation.type}, command: ${command}`)
   switch (validation.type) {
-    case 'command':
+    case 'command': {
       // Check if command was used (flexible matching)
-      return command.trim().startsWith(validation.expected) ||
-             command.includes(validation.expected)
+      const cmd = command.trim()
+      const expected = validation.expected
+      return cmd.startsWith(expected) || cmd.includes(expected)
+    }
 
     case 'output_contains':
       return output.includes(validation.expected)
@@ -89,6 +56,43 @@ export async function validateLevel(
     case 'file_content': {
       const content = await containerManager.getFileContent(sessionId, validation.expected)
       return content.length > 0
+    }
+
+    case 'file_permission': {
+      // Expected format: "/path/to/file:permission" e.g. "/home/player/salary.txt:600"
+      const [filePath, permission] = validation.expected.split(':')
+      const actualPermission = await containerManager.getFilePermission(sessionId, filePath)
+      return actualPermission === permission
+    }
+
+    case 'directory_permission': {
+      // Expected format: "/path/to/dir:permission:group" e.g. "/home/player/project:775:developers"
+      const [dirPath, permission, group] = validation.expected.split(':')
+      const actualPermission = await containerManager.getFilePermission(sessionId, dirPath)
+      if (actualPermission !== permission) return false
+      if (group) {
+        const actualGroup = await containerManager.getFileGroup(sessionId, dirPath)
+        return actualGroup === group
+      }
+      return true
+    }
+
+    case 'permission_exists': {
+      // Check if any file with the specified permission exists
+      const permission = validation.expected
+      return await containerManager.checkPermissionExists(sessionId, permission)
+    }
+
+    case 'user_exists': {
+      // Check if user exists in the system
+      const username = validation.expected
+      return await containerManager.checkUserExists(sessionId, username)
+    }
+
+    case 'user_in_group': {
+      // Expected format: "username:groupname" e.g. "alice:developers"
+      const [username, groupname] = validation.expected.split(':')
+      return await containerManager.checkUserInGroup(sessionId, username, groupname)
     }
 
     default:
