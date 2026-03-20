@@ -19,12 +19,19 @@ RUN apk add --no-cache \
     net-tools \
     iputils \
     shadow \
+    sudo \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user
 RUN adduser -D -s /bin/bash player && \
     mkdir -p /home/player && \
     chown -R player:player /home/player
+
+# Configure sudo for player user (passwordless)
+RUN echo "player ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Create developers group for permission exercises
+RUN addgroup developers
 
 # Configure bash history for player user
 RUN echo 'export HISTFILE=/home/player/.bash_history' >> /home/player/.bashrc && \
@@ -43,6 +50,26 @@ RUN mkdir -p /home/player/projects && \
     echo "This is a sample text file." > /home/player/documents/readme.txt && \
     echo "Hello World" > /home/player/hello.txt && \
     chown -R player:player /home/player
+
+# === Day 2: Permission Levels Files ===
+# Level 8: 机密泄露 - salary.txt with open permissions (644)
+RUN echo "CEO: $500,000" > /home/player/salary.txt && \
+    echo "CTO: $400,000" >> /home/player/salary.txt && \
+    echo "Developer: $100,000" >> /home/player/salary.txt && \
+    chmod 644 /home/player/salary.txt && \
+    chown player:player /home/player/salary.txt
+
+# Level 9: 协作项目 - project directory
+RUN mkdir -p /home/player/project && \
+    echo "# Project Alpha" > /home/player/project/README.md && \
+    chown -R player:player /home/player/project
+
+# Level 10: 脚本跑不起来 - deploy.sh without execute permission
+RUN echo '#!/bin/bash' > /home/player/deploy.sh && \
+    echo 'echo "Deploying application..."' >> /home/player/deploy.sh && \
+    echo 'echo "Done!"' >> /home/player/deploy.sh && \
+    chmod 644 /home/player/deploy.sh && \
+    chown player:player /home/player/deploy.sh
 
 # Set working directory
 WORKDIR /home/player
