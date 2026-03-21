@@ -31,6 +31,10 @@ export class ContainerManager {
     9: ['adduser -D alice'],
     // Level 12: alice must exist
     12: ['adduser -D alice'],
+    // Level 13: start a CPU-intensive background process named stress-worker
+    13: ['/usr/local/bin/stress-worker > /dev/null 2>&1 &'],
+    // Level 15: occupy port 8080 with nc
+    15: ['nc -l -p 8080 > /dev/null 2>&1 &'],
   }
 
   constructor() {
