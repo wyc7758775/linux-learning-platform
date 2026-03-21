@@ -68,18 +68,18 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
               <span className="text-xs">{showKnowledge ? '▲' : '▼'}</span>
             </button>
             {showKnowledge && (
-              <div className="bg-gray-900 rounded-lg p-4 space-y-3 border border-gray-700">
+              <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
                 {level.knowledgeCards.map((card, i) => (
-                  <div key={i}>
-                    <div className="flex items-start gap-2">
-                      <code className="text-green-400 font-mono font-bold text-sm shrink-0">{card.command}</code>
+                  <div key={i} className="mb-4 last:mb-0">
+                    <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
+                      <code className="text-green-400 font-mono font-bold text-sm">{card.command}</code>
                       <span className="text-gray-400 text-sm">— {card.description}</span>
                     </div>
                     {card.flags && card.flags.length > 0 && (
-                      <div className="ml-4 mt-1 space-y-1">
+                      <div className="ml-4 mt-2 space-y-1">
                         {card.flags.map((f, j) => (
-                          <div key={j} className="flex items-start gap-2">
-                            <code className="text-yellow-400 font-mono text-xs shrink-0">{f.flag}</code>
+                          <div key={j} className="flex flex-wrap items-start gap-x-2 gap-y-1">
+                            <code className="text-yellow-400 font-mono text-xs">{f.flag}</code>
                             <span className="text-gray-500 text-xs">{f.meaning}</span>
                           </div>
                         ))}
