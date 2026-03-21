@@ -17,6 +17,7 @@ RUN apk add --no-cache \
     tree \
     less \
     net-tools \
+    iproute2 \
     iputils \
     shadow \
     sudo \
@@ -70,6 +71,17 @@ RUN echo '#!/bin/bash' > /home/player/deploy.sh && \
     echo 'echo "Done!"' >> /home/player/deploy.sh && \
     chmod 644 /home/player/deploy.sh && \
     chown player:player /home/player/deploy.sh
+
+# === Day 3: Incident Response Level Files ===
+# Level 13: stress-worker script (CPU-intensive background process)
+RUN printf '#!/bin/sh\nwhile true; do :; done\n' > /usr/local/bin/stress-worker && \
+    chmod +x /usr/local/bin/stress-worker
+
+# Level 14/16-20: Generate nginx access.log and app.log with planted data
+COPY generate_logs.sh /tmp/generate_logs.sh
+RUN chmod +x /tmp/generate_logs.sh && \
+    /tmp/generate_logs.sh && \
+    rm /tmp/generate_logs.sh
 
 # Set working directory
 WORKDIR /home/player
