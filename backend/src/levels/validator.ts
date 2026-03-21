@@ -1,7 +1,7 @@
 import { ContainerManager } from '../docker/containerManager.js'
 
 interface ValidationRule {
-  type: 'command' | 'output_contains' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group'
+  type: 'command' | 'output_contains' | 'output_number' | 'output_lines_gte' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group'
   expected: string
 }
 
@@ -14,13 +14,27 @@ const LEVEL_VALIDATIONS: Record<number, ValidationRule> = {
   4: { type: 'command', expected: 'clear' },
   5: { type: 'command', expected: 'history' },
   // Chapter 2: 权限实战
-  6: { type: 'user_exists', expected: 'alice' },  // 新同事入职 - 验证用户是否存在
-  7: { type: 'user_in_group', expected: 'alice:developers' },  // 部门分组 - 验证用户在组中
-  8: { type: 'file_permission', expected: '/home/player/salary.txt:600' },  // 机密泄露
-  9: { type: 'directory_permission', expected: '/home/player/project:775:developers' },  // 协作项目
-  10: { type: 'file_permission', expected: '/home/player/deploy.sh:755' },  // 脚本跑不起来
-  11: { type: 'permission_exists', expected: '750' },  // 权限解密
-  12: { type: 'directory_permission', expected: '/home/player/shared:764:developers' },  // 最终挑战
+  6: { type: 'user_exists', expected: 'alice' },
+  7: { type: 'user_in_group', expected: 'alice:developers' },
+  8: { type: 'file_permission', expected: '/home/player/salary.txt:600' },
+  9: { type: 'directory_permission', expected: '/home/player/project:775:developers' },
+  10: { type: 'file_permission', expected: '/home/player/deploy.sh:755' },
+  11: { type: 'permission_exists', expected: '750' },
+  12: { type: 'directory_permission', expected: '/home/player/shared:764:developers' },
+  // Chapter 3: 事故响应
+  13: { type: 'output_contains', expected: 'stress-worker' },
+  14: { type: 'output_contains', expected: '/var/log/nginx' },
+  15: { type: 'output_contains', expected: '8080' },
+  16: { type: 'output_lines_gte', expected: '40' },
+  17: { type: 'output_number', expected: '312' },
+  18: { type: 'output_contains', expected: '10.66.6.6' },
+  19: { type: 'output_number', expected: '23' },
+  20: { type: 'output_contains', expected: '182' },
+}
+
+// Strip ANSI escape codes from terminal output
+function stripAnsi(str: string): string {
+  return str.replace(/\x1b\[[0-9;]*[mGKHJA-Za-z]/g, '').replace(/\r/g, '')
 }
 
 export async function validateLevel(
@@ -38,7 +52,6 @@ export async function validateLevel(
   console.log(`[Validator] Level ${levelId}, type: ${validation.type}, command: ${command}`)
   switch (validation.type) {
     case 'command': {
-      // Check if command was used (flexible matching)
       const cmd = command.trim()
       const expected = validation.expected
       return cmd.startsWith(expected) || cmd.includes(expected)
@@ -46,6 +59,24 @@ export async function validateLevel(
 
     case 'output_contains':
       return output.includes(validation.expected)
+
+    case 'output_number': {
+      // Strip ANSI codes, trim whitespace, compare as number string
+      const clean = stripAnsi(output).trim()
+      const actualNum = parseInt(clean, 10)
+      const expectedNum = parseInt(validation.expected, 10)
+      console.log(`[Validator] output_number: actual="${clean}" (${actualNum}), expected=${expectedNum}`)
+      return !isNaN(actualNum) && actualNum === expectedNum
+    }
+
+    case 'output_lines_gte': {
+      // Count non-empty lines in output
+      const clean = stripAnsi(output)
+      const lines = clean.split('\n').filter(l => l.trim().length > 0)
+      const expectedCount = parseInt(validation.expected, 10)
+      console.log(`[Validator] output_lines_gte: actual=${lines.length}, expected>=${expectedCount}`)
+      return lines.length >= expectedCount
+    }
 
     case 'file_exists':
       return await containerManager.checkFileExists(sessionId, validation.expected)
@@ -59,14 +90,12 @@ export async function validateLevel(
     }
 
     case 'file_permission': {
-      // Expected format: "/path/to/file:permission" e.g. "/home/player/salary.txt:600"
       const [filePath, permission] = validation.expected.split(':')
       const actualPermission = await containerManager.getFilePermission(sessionId, filePath)
       return actualPermission === permission
     }
 
     case 'directory_permission': {
-      // Expected format: "/path/to/dir:permission:group" e.g. "/home/player/project:775:developers"
       const [dirPath, permission, group] = validation.expected.split(':')
       const actualPermission = await containerManager.getFilePermission(sessionId, dirPath)
       if (actualPermission !== permission) return false
@@ -78,19 +107,16 @@ export async function validateLevel(
     }
 
     case 'permission_exists': {
-      // Check if any file with the specified permission exists
       const permission = validation.expected
       return await containerManager.checkPermissionExists(sessionId, permission)
     }
 
     case 'user_exists': {
-      // Check if user exists in the system
       const username = validation.expected
       return await containerManager.checkUserExists(sessionId, username)
     }
 
     case 'user_in_group': {
-      // Expected format: "username:groupname" e.g. "alice:developers"
       const [username, groupname] = validation.expected.split(':')
       return await containerManager.checkUserInGroup(sessionId, username, groupname)
     }
