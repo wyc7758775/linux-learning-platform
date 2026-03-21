@@ -12,9 +12,9 @@ interface LevelProps {
 export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProps) {
   const [showHint, setShowHint] = useState(false)
   const [showFirework, setShowFirework] = useState(false)
+  const [showKnowledge, setShowKnowledge] = useState(true)
   const prevCompletedRef = useRef(false)
 
-  // 监听 completed 变化，触发烟花
   useEffect(() => {
     if (completed && !prevCompletedRef.current) {
       setShowFirework(true)
@@ -22,8 +22,13 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
     prevCompletedRef.current = completed
   }, [completed])
 
+  // Reset hint when level changes
+  useEffect(() => {
+    setShowHint(false)
+  }, [level.id])
+
   const handleNextLevel = () => {
-    setShowFirework(false) // 立即销毁烟花
+    setShowFirework(false)
     onNextLevel()
   }
 
@@ -33,7 +38,6 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
 
   return (
     <>
-      {/* Firework animation */}
       {showFirework && (
         <Firework onComplete={handleFireworkComplete} duration={3000} />
       )}
@@ -53,11 +57,54 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
 
         <p className="text-gray-300 mb-4">{level.description}</p>
 
-        <div className="bg-gray-900 rounded-lg p-4 mb-4">
-          <code className="text-green-400 font-mono">
-            目标命令: <span className="text-yellow-400">{level.command}</span>
-          </code>
-        </div>
+        {/* Knowledge cards */}
+        {level.knowledgeCards && level.knowledgeCards.length > 0 && (
+          <div className="mb-4">
+            <button
+              onClick={() => setShowKnowledge(!showKnowledge)}
+              className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors font-medium mb-2"
+            >
+              <span>📚 本关知识</span>
+              <span className="text-xs">{showKnowledge ? '▲' : '▼'}</span>
+            </button>
+            {showKnowledge && (
+              <div className="bg-gray-900 rounded-lg p-4 space-y-3 border border-gray-700">
+                {level.knowledgeCards.map((card, i) => (
+                  <div key={i}>
+                    <div className="flex items-start gap-2">
+                      <code className="text-green-400 font-mono font-bold text-sm shrink-0">{card.command}</code>
+                      <span className="text-gray-400 text-sm">— {card.description}</span>
+                    </div>
+                    {card.flags && card.flags.length > 0 && (
+                      <div className="ml-4 mt-1 space-y-1">
+                        {card.flags.map((f, j) => (
+                          <div key={j} className="flex items-start gap-2">
+                            <code className="text-yellow-400 font-mono text-xs shrink-0">{f.flag}</code>
+                            <span className="text-gray-500 text-xs">{f.meaning}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Objective or command */}
+        {level.objective ? (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+            <p className="text-blue-300 text-xs font-medium mb-1">🎯 任务目标</p>
+            <p className="text-white text-sm">{level.objective}</p>
+          </div>
+        ) : (
+          <div className="bg-gray-900 rounded-lg p-4 mb-4">
+            <code className="text-green-400 font-mono">
+              目标命令: <span className="text-yellow-400">{level.command}</span>
+            </code>
+          </div>
+        )}
 
         {/* Hint section */}
         <div className="mb-4">
