@@ -6,18 +6,100 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  min-width: 320px;
+}
+
+/* 深色主题变量 */
+.dark {
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #0f0f23;
+  background-color: #0f172a;
+}
+
+/* 浅色主题变量 */
+:root:not(.dark) {
+  color-scheme: light;
+  color: rgba(15, 23, 42, 0.87);
+  background-color: #f8fafc;
 }
 
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+}
+
+/* 平滑的主题切换过渡 */
+* {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* 禁用终端元素的主题过渡 */
+.xterm,
+.xterm-screen,
+.terminal-window {
+  transition: none !important;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+:root:not(.dark) ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+:root:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* 选择文本颜色 */
+::selection {
+  background-color: #22c55e;
+  color: white;
+}
+
+/* Focus 可见性 */
+:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+/* 响应 prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
