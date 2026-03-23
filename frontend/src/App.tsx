@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { Level } from './components/Level/Level'
 import { Terminal } from './components/Terminal/Terminal'
 import { Progress } from './components/Progress/Progress'
+import { ThemeToggle } from './components/ThemeToggle/ThemeToggle'
+import { useTheme } from './contexts/ThemeContext'
 import { socket, connectSocket } from './services/socket'
 import type { Level as LevelType } from './levels'
 
@@ -363,6 +365,7 @@ function App() {
   const [sessionId, setSessionId] = useState<string>('')
   const [connected, setConnected] = useState(false)
   const [levelCompleted, setLevelCompleted] = useState(false)
+  const { isDark } = useTheme()
 
   useEffect(() => {
     localStorage.setItem('linux-learning-current-level', String(currentLevel))
@@ -373,12 +376,10 @@ function App() {
 
     socket.on('connect', () => {
       setConnected(true)
-      console.log('Connected to server')
     })
 
     socket.on('disconnect', () => {
       setConnected(false)
-      console.log('Disconnected from server')
     })
 
     socket.on('session:created', (id: string) => {
@@ -428,26 +429,86 @@ function App() {
   }
 
   const activeLevel = levels.find(l => l.id === currentLevel)
+  const completedCount = levels.filter(l => l.completed).length
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-green-400">
-            Linux 命令行学习平台
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className={`flex items-center gap-2 ${connected ? 'text-green-400' : 'text-red-400'}`}>
-              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`}></span>
-              {connected ? '已连接' : '未连接'}
-            </span>
+    <div className={`h-screen flex flex-col overflow-hidden ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+      {/* Header - Fixed */}
+      <header className={`shrink-0 z-50 border-b backdrop-blur-xl ${
+        isDark
+          ? 'bg-slate-900/80 border-slate-800'
+          : 'bg-white/80 border-slate-200'
+      }`}>
+        <div className="px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                isDark
+                  ? 'bg-gradient-to-br from-green-500 to-emerald-600'
+                  : 'bg-gradient-to-br from-green-600 to-emerald-700'
+              } shadow-lg shadow-green-500/25`}>
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className={`text-lg font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  Linux 命令行学习平台
+                </h1>
+                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  交互式学习，掌握终端技能
+                </p>
+              </div>
+            </div>
+
+            {/* Right side */}
+            <div className="flex items-center gap-3">
+              {/* Progress badge */}
+              <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+                isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
+              }`}>
+                <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{completedCount}/{levels.length}</span>
+              </div>
+
+              {/* Connection Status */}
+              <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium ${
+                connected
+                  ? isDark
+                    ? 'bg-green-500/10 text-green-400 ring-1 ring-green-500/20'
+                    : 'bg-green-50 text-green-600 ring-1 ring-green-200'
+                  : isDark
+                    ? 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20'
+                    : 'bg-red-50 text-red-600 ring-1 ring-red-200'
+              }`}>
+                <span className={`relative flex h-2 w-2`}>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    connected ? 'bg-green-400' : 'bg-red-400'
+                  }`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                    connected ? 'bg-green-500' : 'bg-red-500'
+                  }`}></span>
+                </span>
+                <span className="hidden sm:inline">{connected ? '已连接' : '离线'}</span>
+              </div>
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="lg:w-1/3 space-y-6">
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar - Scrollable */}
+        <aside className={`w-full lg:w-[400px] flex-shrink-0 overflow-y-auto ${
+          isDark ? 'bg-slate-900/50' : 'bg-slate-50'
+        } ${isDark ? 'lg:border-r lg:border-slate-800' : 'lg:border-r lg:border-slate-200'}`}>
+          <div className="p-4 sm:p-6 space-y-6">
             <Progress
               levels={levels}
               currentLevel={currentLevel}
@@ -462,24 +523,62 @@ function App() {
               />
             )}
           </div>
+        </aside>
 
-          <div className="lg:w-2/3 lg:sticky lg:top-6 lg:self-start">
-            <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 flex flex-col"
-                 style={{ height: 'calc(100vh - 120px)' }}>
-              <div className="bg-gray-700 px-4 py-2 flex items-center gap-2 shrink-0">
-                <span className="w-3 h-3 rounded-full bg-red-500"></span>
-                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-                <span className="w-3 h-3 rounded-full bg-green-500"></span>
-                <span className="ml-2 text-sm text-gray-400">Terminal</span>
+        {/* Right Panel - Fixed Terminal */}
+        <main className="hidden lg:flex flex-1 flex-col min-w-0 p-4 sm:p-6">
+          <div className={`flex-1 rounded-2xl overflow-hidden border shadow-2xl flex flex-col ${
+            isDark
+              ? 'bg-slate-800/50 border-slate-700/50 shadow-black/20'
+              : 'bg-white border-slate-200 shadow-slate-200/50'
+          }`}>
+            {/* Terminal Header */}
+            <div className={`shrink-0 px-4 py-3 flex items-center gap-3 ${
+              isDark
+                ? 'bg-slate-800/80 border-b border-slate-700/50'
+                : 'bg-slate-100 border-b border-slate-200'
+            }`}>
+              {/* Traffic lights */}
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors cursor-pointer"></span>
+                <span className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors cursor-pointer"></span>
+                <span className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 transition-colors cursor-pointer"></span>
               </div>
-              <Terminal
-                sessionId={sessionId}
-                levelId={currentLevel}
-              />
+              <div className="flex-1 text-center">
+                <span className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  player@linux:~
+                </span>
+              </div>
+              <div className="w-16"></div>
+            </div>
+
+            {/* Terminal Content */}
+            <div className="flex-1 min-h-0">
+              <Terminal sessionId={sessionId} levelId={currentLevel} />
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
+
+      {/* Mobile Terminal Toggle */}
+      <div className="lg:hidden shrink-0">
+        <button
+          className={`w-full py-3 text-sm font-medium flex items-center justify-center gap-2 ${
+            isDark
+              ? 'bg-slate-800 text-white border-t border-slate-700'
+              : 'bg-white text-slate-900 border-t border-slate-200'
+          }`}
+          onClick={() => {
+            // 简单滚动到终端区域或显示模态框
+            alert('移动端终端暂未完全适配，请使用桌面端获得最佳体验')
+          }}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          打开终端
+        </button>
+      </div>
     </div>
   )
 }

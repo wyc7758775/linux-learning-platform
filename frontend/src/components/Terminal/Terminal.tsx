@@ -3,13 +3,13 @@ import { Terminal as XTerminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { socket } from '../../services/socket'
+import { useTheme } from '../../contexts/ThemeContext'
 
 interface TerminalProps {
   sessionId: string
   levelId: number
 }
 
-// Format directory path for display (like bash prompt)
 function formatDir(dir: string): string {
   const home = '/home/player'
   if (dir === home) return '~'
@@ -17,7 +17,6 @@ function formatDir(dir: string): string {
   return dir
 }
 
-// Generate prompt string
 function generatePrompt(currentDir: string): string {
   const dirDisplay = formatDir(currentDir)
   return `\x1b[1;34mplayer@linux\x1b[0m:\x1b[1;36m${dirDisplay}\x1b[0m$ `
@@ -31,8 +30,8 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
   const sessionIdRef = useRef<string>(sessionId)
   const levelIdRef = useRef<number>(levelId)
   const currentDirRef = useRef<string>('/home/player')
+  const { isDark } = useTheme()
 
-  // Keep sessionIdRef and levelIdRef in sync with props
   useEffect(() => {
     sessionIdRef.current = sessionId
   }, [sessionId])
@@ -50,50 +49,86 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
   useEffect(() => {
     if (!terminalRef.current) return
 
-    // Create terminal
     const xterm = new XTerminal({
-      theme: {
-        background: '#1a1a2e',
-        foreground: '#00ff41',
-        cursor: '#00ff41',
-        cursorAccent: '#1a1a2e',
-        green: '#00ff41',
+      theme: isDark ? {
+        background: '#0f172a',
+        foreground: '#94a3b8',
+        cursor: '#22c55e',
+        cursorAccent: '#0f172a',
+        selectionBackground: '#22c55e33',
+        selectionForeground: '#ffffff',
+        black: '#0f172a',
+        red: '#f87171',
+        green: '#22c55e',
+        yellow: '#fbbf24',
+        blue: '#60a5fa',
+        magenta: '#c084fc',
+        cyan: '#22d3ee',
+        white: '#f8fafc',
+        brightBlack: '#475569',
+        brightRed: '#fca5a5',
+        brightGreen: '#4ade80',
+        brightYellow: '#fcd34d',
+        brightBlue: '#93c5fd',
+        brightMagenta: '#d8b4fe',
+        brightCyan: '#67e8f9',
+        brightWhite: '#ffffff',
+      } : {
+        background: '#f8fafc',
+        foreground: '#334155',
+        cursor: '#059669',
+        cursorAccent: '#f8fafc',
+        selectionBackground: '#05966933',
+        selectionForeground: '#0f172a',
+        black: '#1e293b',
+        red: '#dc2626',
+        green: '#059669',
+        yellow: '#d97706',
+        blue: '#2563eb',
+        magenta: '#9333ea',
+        cyan: '#0891b2',
+        white: '#1e293b',
+        brightBlack: '#64748b',
+        brightRed: '#ef4444',
+        brightGreen: '#10b981',
+        brightYellow: '#f59e0b',
+        brightBlue: '#3b82f6',
+        brightMagenta: '#a855f7',
+        brightCyan: '#06b6d4',
+        brightWhite: '#0f172a',
       },
-      fontFamily: 'Menlo, Monaco, Courier New, monospace',
+      fontFamily: 'JetBrains Mono, Menlo, Monaco, Courier New, monospace',
       fontSize: 14,
-      lineHeight: 1.4,
+      lineHeight: 1.6,
       cursorBlink: true,
       cursorStyle: 'block',
     })
 
     const fitAddon = new FitAddon()
     xterm.loadAddon(fitAddon)
-
     xterm.open(terminalRef.current)
     fitAddon.fit()
 
     xtermRef.current = xterm
     fitAddonRef.current = fitAddon
 
-    // Handle resize
     window.addEventListener('resize', handleResize)
 
     // Welcome message
-    xterm.writeln('\x1b[1;32m欢迎来到 Linux 学习终端!\x1b[0m')
-    xterm.writeln('\x1b[90m输入命令开始学习...\x1b[0m')
+    xterm.writeln('')
+    xterm.writeln('\x1b[1;32m  欢迎来到 Linux 学习终端!\x1b[0m')
+    xterm.writeln('\x1b[90m  输入命令开始你的学习之旅...\x1b[0m')
     xterm.writeln('')
     xterm.write(generatePrompt(currentDirRef.current))
 
-    // Handle terminal input
     xterm.onData((data) => {
       const code = data.charCodeAt(0)
 
-      if (code === 13) { // Enter
+      if (code === 13) {
         const command = inputBufferRef.current.trim()
         xterm.writeln('')
 
         if (command) {
-          // Send command to server - use sessionIdRef to get current sessionId
           const currentSessionId = sessionIdRef.current
           if (currentSessionId) {
             socket.emit('terminal:input', {
@@ -102,7 +137,7 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
               levelId: levelIdRef.current
             })
           } else {
-            xterm.writeln('\x1b[31m错误: 未连接到会话\x1b[0m')
+            xterm.writeln('\x1b[31m  错误: 未连接到会话\x1b[0m')
             xterm.write(generatePrompt(currentDirRef.current))
           }
         } else {
@@ -110,18 +145,14 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
         }
 
         inputBufferRef.current = ''
-      } else if (code === 127) { // Backspace
+      } else if (code === 127) {
         if (inputBufferRef.current.length > 0) {
           inputBufferRef.current = inputBufferRef.current.slice(0, -1)
           xterm.write('\b \b')
         }
-      } else if (code === 27) { // Escape sequences (arrow keys, etc.)
-        if (data === '\x1b[A') { // Up arrow - could implement history
-          // TODO: command history
-        } else if (data === '\x1b[B') { // Down arrow
-          // TODO: command history
-        }
-      } else if (code >= 32) { // Printable characters
+      } else if (code === 27) {
+        // Arrow keys - could implement history
+      } else if (code >= 32) {
         inputBufferRef.current += data
         xterm.write(data)
       }
@@ -131,34 +162,29 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
       window.removeEventListener('resize', handleResize)
       xterm.dispose()
     }
-  }, [])
+  }, [isDark, handleResize])
 
-  // Handle session changes
   useEffect(() => {
     if (xtermRef.current && sessionId) {
       xtermRef.current.clear()
-      currentDirRef.current = '/home/player' // Reset directory on new session
-      xtermRef.current.writeln('\x1b[1;32m会话已创建，开始关卡 ' + levelId + '\x1b[0m')
+      currentDirRef.current = '/home/player'
+      xtermRef.current.writeln('\x1b[1;36m  会话已创建，开始关卡 ' + levelId + '\x1b[0m')
       xtermRef.current.writeln('')
       xtermRef.current.write(generatePrompt(currentDirRef.current))
     }
-  }, [sessionId, levelId])
+  }, [sessionId, levelId, isDark])
 
-  // Handle terminal output from server
   useEffect(() => {
     const handleOutput = (data: { output: string; currentDir?: string }) => {
       if (xtermRef.current) {
-        // Update current directory if provided
         if (data.currentDir) {
           currentDirRef.current = data.currentDir
         }
 
-        // Write output
         if (data.output) {
           xtermRef.current.write(data.output)
         }
 
-        // Write new prompt with current directory
         xtermRef.current.write('\r\n' + generatePrompt(currentDirRef.current))
       }
     }
@@ -168,13 +194,16 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
     return () => {
       socket.off('terminal:output', handleOutput)
     }
-  }, [])
+  }, [isDark])
 
   return (
     <div
       ref={terminalRef}
-      className="flex-1 w-full p-2 min-h-0"
-      style={{ backgroundColor: '#1a1a2e' }}
+      className="w-full h-full"
+      style={{
+        backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+        padding: '4px'
+      }}
     />
   )
 }
