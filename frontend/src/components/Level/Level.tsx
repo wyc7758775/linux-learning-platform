@@ -49,7 +49,7 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
           : 'bg-white border-slate-200 shadow-sm'
       }`}>
         {/* Header */}
-        <div className={`px-5 py-4 border-b ${
+        <div className={`px-5 pt-5 pb-4 border-b ${
           isDark ? 'border-slate-700/50' : 'border-slate-100'
         }`}>
           <div className="flex items-start justify-between gap-4">

@@ -113,7 +113,7 @@ export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps)
               {/* Chapter header - clickable */}
               <button
                 onClick={() => toggleChapter(chapter)}
-                className={`w-full px-4 py-3 flex items-center justify-between transition-colors cursor-pointer ${
+                className={`w-full px-4 py-2 flex items-center justify-between transition-colors cursor-pointer ${
                   isDark ? 'hover:bg-slate-600/30' : 'hover:bg-slate-100'
                 }`}
               >
@@ -171,7 +171,7 @@ export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps)
                   opacity: isExpanded ? 1 : 0,
                 }}
               >
-                <div className="px-4 pb-3">
+                <div className="px-4 pt-4 pb-3">
                   <div className="grid grid-cols-5 gap-1.5">
                     {chapterLevels.map(level => {
                       const isUnlocked = level.id === 1 || levels.find(l => l.id === level.id - 1)?.completed

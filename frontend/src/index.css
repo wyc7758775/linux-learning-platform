@@ -9,14 +9,14 @@
   min-width: 320px;
 }
 
-/* 深色主题变量 */
+/* 深色主题 */
 .dark {
   color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #0f172a;
 }
 
-/* 浅色主题变量 */
+/* 浅色主题 */
 :root:not(.dark) {
   color-scheme: light;
   color: rgba(15, 23, 42, 0.87);
@@ -102,4 +102,26 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* 侧边栏滚动容器 - 预留滚动条空间 */
+.sidebar-scroll {
+  scrollbar-gutter: stable;
+}
+
+/* 滚动条 hover 时显示 */
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: #64748b;
+}
+
+.dark .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+:root:not(.dark) .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
 }
