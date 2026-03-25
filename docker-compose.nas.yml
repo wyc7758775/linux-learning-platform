@@ -1,0 +1,46 @@
+# 绿联 NAS 部署配置
+#
+# 使用方法：
+#   1. SSH 登录 NAS
+#   2. 创建目录: mkdir -p /volume1/docker/linux-learning && cd /volume1/docker/linux-learning
+#   3. 下载此文件: wget https://raw.githubusercontent.com/wyc7758775/linux-learning-platform/main/docker-compose.nas.yml -O docker-compose.yml
+#   4. 启动: docker-compose pull && docker-compose up -d
+#   5. 访问: http://<NAS-IP>:8080
+
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/wyc7758775/linux-learning-frontend:latest
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    image: ghcr.io/wyc7758775/linux-learning-backend:latest
+    volumes:
+      # 必须挂载 docker.sock 才能创建学习容器
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - CORS_ORIGIN=http://localhost:8080
+      - LEVEL_IMAGE_NAME=ghcr.io/wyc7758775/linux-learning-level
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 预拉取关卡镜像（后端会自动使用）
+  level-image:
+    image: ghcr.io/wyc7758775/linux-learning-level:latest
+    restart: "no"

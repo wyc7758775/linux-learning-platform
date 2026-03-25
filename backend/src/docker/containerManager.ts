@@ -13,7 +13,7 @@ export interface ContainerSession {
 export class ContainerManager {
   private docker: Docker
   private sessions: Map<string, ContainerSession> = new Map()
-  private imageName = 'linux-learning-level'
+  private imageName = process.env.LEVEL_IMAGE_NAME || 'linux-learning-level'
 
   // Commands that require elevated privileges (sudo)
   private readonly PRIVILEGED_COMMANDS = [

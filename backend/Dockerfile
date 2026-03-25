@@ -14,6 +14,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install docker CLI for container management
+RUN apk add --no-cache docker-cli
+
 # Copy built files and dependencies
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
