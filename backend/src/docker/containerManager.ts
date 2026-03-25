@@ -35,6 +35,16 @@ export class ContainerManager {
     13: ['/usr/local/bin/stress-worker > /dev/null 2>&1 &'],
     // Level 15: occupy port 8080 with nc
     15: ['nc -l -p 8080 > /dev/null 2>&1 &'],
+    // Level 21-23: create pre-built dist directory for deployment levels
+    21: ['mkdir -p /home/player/my-app/dist && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><div id=\\"app\\"></div><script src=\\"/assets/index.js\\"></script></body></html>" > /home/player/my-app/dist/index.html && echo "console.log(\\"Hello Vue!\\")" > /home/player/my-app/dist/assets/index.js && chown -R player:player /home/player/my-app/dist'],
+    22: ['mkdir -p /home/player/my-app/dist && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><div id=\\"app\\"></div><script src=\\"/assets/index.js\\"></script></body></html>" > /home/player/my-app/dist/index.html && echo "console.log(\\"Hello Vue!\\")" > /home/player/my-app/dist/assets/index.js && chown -R player:player /home/player/my-app/dist'],
+    23: ['mkdir -p /home/player/my-app/dist && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><div id=\\"app\\"></div><script src=\\"/assets/index.js\\"></script></body></html>" > /home/player/my-app/dist/index.html && echo "console.log(\\"Hello Vue!\\")" > /home/player/my-app/dist/assets/index.js && chown -R player:player /home/player/my-app/dist'],
+    // Level 27-30: start nginx for testing
+    27: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
+    28: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
+    29: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
+    // Level 30: start mock API server for reverse proxy
+    30: ['/usr/local/bin/mock-api > /dev/null 2>&1 &'],
   }
 
   constructor() {

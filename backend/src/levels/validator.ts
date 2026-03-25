@@ -1,7 +1,7 @@
 import { ContainerManager } from '../docker/containerManager.js'
 
 interface ValidationRule {
-  type: 'command' | 'output_contains' | 'output_number' | 'output_lines_gte' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group'
+  type: 'command' | 'output_contains' | 'output_number' | 'output_lines_gte' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group' | 'nginx_running'
   expected: string
 }
 
@@ -30,6 +30,17 @@ const LEVEL_VALIDATIONS: Record<number, ValidationRule> = {
   18: { type: 'output_contains', expected: '10.66.6.6' },
   19: { type: 'output_number', expected: '23' },
   20: { type: 'output_contains', expected: '182' },
+  // Chapter 4: 部署上线
+  21: { type: 'directory_exists', expected: '/home/player/my-app/dist' },
+  22: { type: 'output_contains', expected: 'index.html' },
+  23: { type: 'file_exists', expected: '/var/www/html/index.html' },
+  24: { type: 'output_contains', expected: 'http' },
+  25: { type: 'file_exists', expected: '/etc/nginx/http.d/myapp.conf' },
+  26: { type: 'output_contains', expected: 'syntax is ok' },
+  27: { type: 'nginx_running', expected: 'nginx: master' },
+  28: { type: 'output_contains', expected: '<html' },
+  29: { type: 'output_contains', expected: 'GET' },
+  30: { type: 'output_contains', expected: 'ok' },
 }
 
 // Strip ANSI escape codes from terminal output
@@ -119,6 +130,12 @@ export async function validateLevel(
     case 'user_in_group': {
       const [username, groupname] = validation.expected.split(':')
       return await containerManager.checkUserInGroup(sessionId, username, groupname)
+    }
+
+    case 'nginx_running': {
+      // Check if nginx process is running
+      const result = await containerManager.executeCommand(sessionId, 'ps aux | grep nginx')
+      return result.output.includes(validation.expected)
     }
 
     default:

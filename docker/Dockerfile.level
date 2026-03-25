@@ -21,6 +21,9 @@ RUN apk add --no-cache \
     iputils \
     shadow \
     sudo \
+    nginx \
+    nodejs \
+    npm \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user
@@ -82,6 +85,29 @@ COPY generate_logs.sh /tmp/generate_logs.sh
 RUN chmod +x /tmp/generate_logs.sh && \
     /tmp/generate_logs.sh && \
     rm /tmp/generate_logs.sh
+
+# === Day 4: Deployment Levels ===
+# Create Nginx directories and default config
+RUN mkdir -p /run/nginx /var/www/html /var/log/nginx /etc/nginx/http.d /var/lib/nginx/tmp && \
+    chown -R player:player /var/www/html /var/log/nginx /var/lib/nginx && \
+    # Create default server config
+    echo 'server { listen 80 default_server; root /var/www/html; index index.html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/http.d/default.conf
+
+# Create Vue example project structure (without dist - user will build it)
+RUN mkdir -p /home/player/my-app/src && \
+    echo '{"name":"my-app","version":"1.0.0","scripts":{"build":"mkdir -p dist/assets && cp src/index.html dist/ && echo Done!","dev":"echo Dev..."}}' > /home/player/my-app/package.json && \
+    echo 'import { defineConfig } from "vite"' > /home/player/my-app/vite.config.js && \
+    echo '<!DOCTYPE html><html><head><title>My App</title></head><body><div id="app"></div></body></html>' > /home/player/my-app/src/index.html && \
+    echo 'console.log("Hello Vue!")' > /home/player/my-app/src/main.js && \
+    echo '<template><div><h1>Hello Vue!</h1></div></template>' > /home/player/my-app/src/App.vue && \
+    chown -R player:player /home/player/my-app
+
+# Level 30: Mock backend API server for reverse proxy exercise
+RUN echo '#!/bin/sh' > /usr/local/bin/mock-api && \
+    echo 'while true; do' >> /usr/local/bin/mock-api && \
+    echo '  (echo -e "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{\"status\":\"ok\",\"message\":\"API is running\"}") | nc -l -p 3000 -w 1 2>/dev/null' >> /usr/local/bin/mock-api && \
+    echo 'done' >> /usr/local/bin/mock-api && \
+    chmod +x /usr/local/bin/mock-api
 
 # Set working directory
 WORKDIR /home/player

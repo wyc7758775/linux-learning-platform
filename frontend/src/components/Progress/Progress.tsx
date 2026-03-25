@@ -24,6 +24,11 @@ const chapterConfig: Record<number, { name: string; color: string; icon: string 
     color: 'from-red-500 to-pink-500',
     icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
   },
+  4: {
+    name: '部署上线',
+    color: 'from-green-500 to-teal-500',
+    icon: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12'
+  },
 }
 
 export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps) {
