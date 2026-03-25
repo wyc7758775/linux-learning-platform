@@ -17,7 +17,7 @@ export interface Level {
   objective?: string
   knowledgeCards?: KnowledgeCard[]
   validation: {
-    type: 'command' | 'output_contains' | 'output_number' | 'output_lines_gte' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group'
+    type: 'command' | 'output_contains' | 'output_number' | 'output_lines_gte' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group' | 'nginx_running'
     expected: string
   }
   completed: boolean
