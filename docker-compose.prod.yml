@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Frontend - Nginx serving static files
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Backend - Node.js API server
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    volumes:
+      # Required for creating level containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Level container Dockerfile
+      - ./docker:/app/docker:ro
+    environment:
+      - PORT=3001
+      - DOCKERFILE_PATH=/app/docker
+      - NODE_ENV=production
+      - CORS_ORIGIN=http://localhost
+    restart: unless-stopped
+
+  # Pre-build level container image
+  level-image:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.level
+    image: linux-learning-level:latest
+    # This service just builds the image and exits
+    command: ["echo", "Level image ready"]

@@ -81,7 +81,7 @@ RUN printf '#!/bin/sh\nwhile true; do :; done\n' > /usr/local/bin/stress-worker 
     chmod +x /usr/local/bin/stress-worker
 
 # Level 14/16-20: Generate nginx access.log and app.log with planted data
-COPY generate_logs.sh /tmp/generate_logs.sh
+COPY docker/generate_logs.sh /tmp/generate_logs.sh
 RUN chmod +x /tmp/generate_logs.sh && \
     /tmp/generate_logs.sh && \
     rm /tmp/generate_logs.sh
