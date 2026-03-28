@@ -1,7 +1,7 @@
 import { ContainerManager } from '../docker/containerManager.js'
 
 interface ValidationRule {
-  type: 'command' | 'output_contains' | 'output_number' | 'output_lines_gte' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group' | 'nginx_running'
+  type: 'command' | 'output_contains' | 'output_number' | 'output_lines_gte' | 'file_exists' | 'file_content' | 'directory_exists' | 'file_permission' | 'directory_permission' | 'permission_exists' | 'user_exists' | 'user_in_group' | 'nginx_running' | 'env_var_set' | 'file_content_contains'
   expected: string
 }
 
