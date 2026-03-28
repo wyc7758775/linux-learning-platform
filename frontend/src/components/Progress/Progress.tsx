@@ -46,10 +46,10 @@ export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps)
   // 关卡内容高度引用，用于动画
   const contentRefs = useRef<Record<number, HTMLDivElement | null>>({})
 
-  // 当关卡变化时，自动展开对应章节
+  // 当关卡变化时，只展开当前关卡所在章节，收起其他
   useEffect(() => {
-    if (currentChapter && !expandedChapters.has(currentChapter)) {
-      setExpandedChapters(prev => new Set([...prev, currentChapter]))
+    if (currentChapter) {
+      setExpandedChapters(new Set([currentChapter]))
     }
   }, [currentChapter])
 
@@ -66,7 +66,7 @@ export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps)
   }
 
   return (
-    <div className={`rounded-2xl border overflow-hidden ${
+    <div className={`rounded-2xl border overflow-hidden h-full min-h-0 flex flex-col ${
       isDark ? 'bg-slate-800/50 border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'
     }`}>
       {/* Header */}
@@ -97,7 +97,7 @@ export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps)
       </div>
 
       {/* Chapters - 使用稳定滚动条 */}
-      <div className={`p-4 space-y-2 max-h-[400px] overflow-y-auto ${
+      <div className={`p-4 space-y-2 flex-1 overflow-y-auto ${
         isDark ? 'scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600' : 'scrollbar-thin scrollbar-track-slate-100 scrollbar-thumb-slate-300'
       }`} style={{ scrollbarGutter: 'stable' }}>
         {chapters.map(chapter => {

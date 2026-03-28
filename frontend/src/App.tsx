@@ -764,15 +764,17 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Scrollable */}
-        <aside className={`w-full lg:w-[400px] flex-shrink-0 overflow-y-auto ${
+        <aside className={`w-full lg:w-[400px] flex-shrink-0 flex flex-col ${
           isDark ? 'bg-slate-900/50' : 'bg-slate-50'
         } ${isDark ? 'lg:border-r lg:border-slate-800' : 'lg:border-r lg:border-slate-200'}`}>
-          <div className="p-4 sm:p-6 space-y-6">
-            <Progress
-              levels={levels}
-              currentLevel={currentLevel}
-              onSelectLevel={handleSelectLevel}
-            />
+          <div className="p-4 sm:p-6 flex-1 min-h-0 flex flex-col gap-6">
+            <div className="flex-1 min-h-0">
+              <Progress
+                levels={levels}
+                currentLevel={currentLevel}
+                onSelectLevel={handleSelectLevel}
+              />
+            </div>
             {activeLevel && (
               <Level
                 level={activeLevel}
