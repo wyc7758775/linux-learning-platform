@@ -26,9 +26,11 @@ services:
       - /app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker:/app/docker:ro
+      - db-data:/app/data
     environment:
       - PORT=3001
       - DOCKERFILE_PATH=/app/docker
+      - DB_PATH=/app/data/data.db
     depends_on:
       - docker-setup
 
@@ -37,3 +39,6 @@ services:
       context: ./docker
       dockerfile: Dockerfile.level
     command: ["echo", "Image ready"]
+
+volumes:
+  db-data:

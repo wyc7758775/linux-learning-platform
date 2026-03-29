@@ -3,8 +3,11 @@ import { Level } from './components/Level/Level'
 import { Terminal } from './components/Terminal/Terminal'
 import { Progress } from './components/Progress/Progress'
 import { ThemeToggle } from './components/ThemeToggle/ThemeToggle'
+import { AvatarPicker } from './components/AvatarPicker/AvatarPicker'
 import { useTheme } from './contexts/ThemeContext'
+import { useAuth } from './contexts/AuthContext'
 import { socket, connectSocket } from './services/socket'
+import { userApi } from './services/api'
 import type { Level as LevelType } from './levels'
 
 const LEVELS: LevelType[] = [
@@ -901,29 +904,55 @@ const LEVELS: LevelType[] = [
 ]
 
 function App() {
-  const [currentLevel, setCurrentLevel] = useState<number>(() => {
-    const saved = localStorage.getItem('linux-learning-current-level')
-    return saved ? parseInt(saved, 10) : 1
-  })
-  const [levels, setLevels] = useState<LevelType[]>(() => {
-    const savedProgress = localStorage.getItem('linux-learning-progress')
-    if (savedProgress) {
-      const progress = JSON.parse(savedProgress)
-      return LEVELS.map(level => ({
-        ...level,
-        completed: progress.completedLevels?.includes(level.id) || false
-      }))
-    }
-    return LEVELS
-  })
+  const [currentLevel, setCurrentLevel] = useState<number>(1)
+  const [levels, setLevels] = useState<LevelType[]>(LEVELS)
   const [sessionId, setSessionId] = useState<string>('')
   const [connected, setConnected] = useState(false)
   const [levelCompleted, setLevelCompleted] = useState(false)
+  const [progressLoaded, setProgressLoaded] = useState(false)
   const { isDark } = useTheme()
+  const { user, logout } = useAuth()
 
+  // Load progress from server on mount
   useEffect(() => {
-    localStorage.setItem('linux-learning-current-level', String(currentLevel))
-  }, [currentLevel])
+    if (user) {
+      userApi.getProgress().then(res => {
+        const { currentLevel: cl, completedLevels } = res.data
+        setCurrentLevel(cl)
+        setLevels(prev => prev.map(level => ({
+          ...level,
+          completed: completedLevels.includes(level.id)
+        })))
+        setProgressLoaded(true)
+      }).catch(() => {
+        // Fallback to localStorage if server unavailable
+        const saved = localStorage.getItem('linux-learning-current-level')
+        if (saved) setCurrentLevel(parseInt(saved, 10))
+        const savedProgress = localStorage.getItem('linux-learning-progress')
+        if (savedProgress) {
+          const progress = JSON.parse(savedProgress)
+          setLevels(prev => prev.map(level => ({
+            ...level,
+            completed: progress.completedLevels?.includes(level.id) || false
+          })))
+        }
+        setProgressLoaded(true)
+      })
+    } else {
+      setProgressLoaded(true)
+    }
+  }, [user])
+
+  // Save progress to server when level changes (only after initial load)
+  useEffect(() => {
+    if (!progressLoaded) return
+    if (user) {
+      const completedLevels = levels.filter(l => l.completed).map(l => l.id)
+      userApi.updateProgress(currentLevel, completedLevels).catch(() => {})
+    } else {
+      localStorage.setItem('linux-learning-current-level', String(currentLevel))
+    }
+  }, [currentLevel, user])
 
   useEffect(() => {
     connectSocket()
@@ -942,13 +971,22 @@ function App() {
 
     socket.on('level:completed', (data: { levelId: number }) => {
       const completedLevelId = data.levelId
+      const nextLevel = completedLevelId + 1
       setLevelCompleted(true)
+      setCurrentLevel(nextLevel)
       setLevels(prev => {
         const updated = prev.map(level =>
           level.id === completedLevelId ? { ...level, completed: true } : level
         )
         const completedLevels = updated.filter(l => l.completed).map(l => l.id)
-        localStorage.setItem('linux-learning-progress', JSON.stringify({ completedLevels }))
+        // Save to server or localStorage
+        const token = localStorage.getItem('linux-learning-token')
+        if (token) {
+          userApi.updateProgress(nextLevel, completedLevels).catch(() => {})
+        } else {
+          localStorage.setItem('linux-learning-progress', JSON.stringify({ completedLevels }))
+          localStorage.setItem('linux-learning-current-level', String(nextLevel))
+        }
         return updated
       })
     })
@@ -1046,6 +1084,25 @@ function App() {
 
               {/* Theme Toggle */}
               <ThemeToggle />
+
+              {/* User Avatar & Logout */}
+              {user && (
+                <div className="flex items-center gap-2">
+                  <AvatarPicker currentAvatar={user.avatar} />
+                  <button
+                    onClick={logout}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                      isDark
+                        ? 'bg-slate-800 text-slate-300 hover:bg-red-500/20 hover:text-red-400'
+                        : 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-500'
+                    }`}
+                    title="退出登录"
+                  >
+                    退出
+                  </button>
+                </div>
+              )}
+
             </div>
           </div>
         </div>

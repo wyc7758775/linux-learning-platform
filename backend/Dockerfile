@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install build tools for native modules (better-sqlite3)
+RUN apk add --no-cache python3 make g++
+
 COPY package*.json ./
 RUN npm ci
 
@@ -14,8 +17,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install docker CLI for container management
-RUN apk add --no-cache docker-cli
+# Install docker CLI + runtime deps for better-sqlite3
+RUN apk add --no-cache docker-cli python3 make g++
+
+# Create data directory for SQLite
+RUN mkdir -p /app/data
 
 # Copy built files and dependencies
 COPY --from=builder /app/dist ./dist

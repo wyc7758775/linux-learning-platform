@@ -4,6 +4,11 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import { createSessionHandler, handleTerminalInput } from './socket/handlers.js'
 import { ContainerManager } from './docker/containerManager.js'
+import authRoutes from './routes/auth.js'
+import userRoutes from './routes/user.js'
+
+// Initialize database (creates tables if not exist)
+import './db/index.js'
 
 const app = express()
 const httpServer = createServer(app)
@@ -18,6 +23,10 @@ const io = new Server(httpServer, {
 
 app.use(cors())
 app.use(express.json())
+
+// API routes
+app.use('/api/auth', authRoutes)
+app.use('/api/user', userRoutes)
 
 // Health check
 app.get('/health', (_, res) => {
