@@ -34,6 +34,11 @@ const chapterConfig: Record<number, { name: string; color: string; icon: string 
     color: 'from-purple-500 to-violet-500',
     icon: 'M4 4v1h3a2 2 0 00-2-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8zM2 10h3a2 2 0 002 2V3a2 2 0 012-2 2zm0 0V3a2 2 0 012-2 2z'
   },
+  6: {
+    name: '脚本编程',
+    color: 'from-rose-500 to-pink-500',
+    icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'
+  },
 }
 
 export function Progress({ levels, currentLevel, onSelectLevel }: ProgressProps) {

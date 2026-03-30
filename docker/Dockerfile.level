@@ -109,6 +109,15 @@ RUN echo '#!/bin/sh' > /usr/local/bin/mock-api && \
     echo 'done' >> /usr/local/bin/mock-api && \
     chmod +x /usr/local/bin/mock-api
 
+# === Chapter 6: Shell Scripting Level Files ===
+# Level 49: config file for string processing exercise
+RUN echo 'SERVER_NAME=production-api' > /home/player/app.conf && \
+    echo 'SERVER_PORT=8080' >> /home/player/app.conf && \
+    echo 'DB_HOST=localhost' >> /home/player/app.conf && \
+    echo 'DB_PORT=5432' >> /home/player/app.conf && \
+    echo 'LOG_LEVEL=info' >> /home/player/app.conf && \
+    chown player:player /home/player/app.conf
+
 # Set working directory
 WORKDIR /home/player
 

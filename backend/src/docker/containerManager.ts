@@ -45,6 +45,8 @@ export class ContainerManager {
     29: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
     // Level 30: start mock API server for reverse proxy
     30: ['/usr/local/bin/mock-api > /dev/null 2>&1 &'],
+    // Level 45: create a test file for safe_rm.sh exercise
+    45: ['echo "important data" > /home/player/testfile.tmp && chown player:player /home/player/testfile.tmp'],
   }
 
   constructor() {
