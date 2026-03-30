@@ -25,5 +25,10 @@ tmp/
 .DS_Store
 Thumbs.db
 
+# Database
+*.db
+*.db-shm
+*.db-wal
+
 # Claude
 .claude/
