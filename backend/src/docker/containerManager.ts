@@ -175,12 +175,21 @@ export class ContainerManager {
         trimmed.startsWith(cmd + ' ') || trimmed === cmd
       )
       if (needsSudo) {
+        let processed = trimmed
+        // Alpine's adduser is interactive by default; add -D flag if missing
+        const adduserMatch = processed.match(/^(adduser)\s+(?!.*-D)(.*)$/)
+        if (adduserMatch) {
+          processed = `adduser -D ${adduserMatch[2]}`
+        }
         // Replace leading whitespace + command with sudo version
-        return part.replace(trimmed, `/usr/bin/sudo ${trimmed}`)
+        return part.replace(trimmed, `/usr/bin/sudo ${processed}`)
       }
       return part
     })
-    return elevated.join('')
+    const result = elevated.join('')
+    // Post-process: make groupadd tolerant of existing groups
+    // Replace "sudo groupadd X &&" with "sudo groupadd X 2>/dev/null; " so the chain continues
+    return result.replace(/(sudo groupadd \S+)\s*&&/g, '$1 2>/dev/null; ')
   }
 
   private async executeInContainer(session: ContainerSession, command: string): Promise<string> {
@@ -214,10 +223,15 @@ export class ContainerManager {
       return new Promise((resolve, reject) => {
         let output = ''
         let resolved = false
+        const COMMAND_TIMEOUT_MS = 10_000 // 10 seconds timeout for any command
+        let poll: ReturnType<typeof setInterval> | undefined
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined
 
         const done = () => {
           if (!resolved) {
             resolved = true
+            if (poll) clearInterval(poll)
+            if (timeoutHandle) clearTimeout(timeoutHandle)
             console.log(`[Exec] Output:`, JSON.stringify(output))
             resolve(output)
           }
@@ -231,18 +245,37 @@ export class ContainerManager {
         stream.on('error', reject)
 
         // Fallback: poll exec status in case TTY stream end event doesn't fire
-        const poll = setInterval(async () => {
+        poll = setInterval(async () => {
           try {
             const info = await exec.inspect()
             if (!info.Running) {
-              clearInterval(poll)
               done()
             }
           } catch {
-            clearInterval(poll)
             done()
           }
         }, 200)
+
+        // Timeout: prevent interactive commands from hanging forever
+        timeoutHandle = setTimeout(async () => {
+          if (!resolved) {
+            console.log(`[Exec] Command timed out after ${COMMAND_TIMEOUT_MS}ms: ${fullCommand}`)
+            try {
+              // Try to kill the hanging process
+              const killExec = await container.exec({
+                Cmd: ['/bin/sh', '-c', `pkill -f "${elevatedCommand.replace(/"/g, '\\"')}" 2>/dev/null || true`],
+                AttachStdout: true,
+                AttachStderr: true,
+                User: 'root',
+              })
+              await killExec.start({ Detach: false })
+            } catch {
+              // Ignore kill errors
+            }
+            output += `\r\n\x1b[33m⚠ 命令执行超时。此命令可能需要交互输入，请尝试非交互方式（如 adduser -D <用户名>）\x1b[0m`
+            done()
+          }
+        }, COMMAND_TIMEOUT_MS)
       })
     } catch (error) {
       console.error('Failed to execute command:', error)
