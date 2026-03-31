@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import Toast from '../components/Toast'
 
 export default function Register() {
   const [username, setUsername] = useState('')
@@ -15,7 +16,6 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
 
     if (password !== confirmPassword) {
       setError('两次输入的密码不一致')
@@ -35,6 +35,7 @@ export default function Register() {
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
+      <Toast message={error} onDismiss={() => setError('')} />
       <div className={`w-full max-w-md rounded-2xl border p-8 ${
         isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
       } shadow-xl`}>
@@ -54,14 +55,6 @@ export default function Register() {
             开始你的 Linux 学习之旅
           </p>
         </div>
-
-        {error && (
-          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
-            isDark ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-red-50 text-red-600 border border-red-200'
-          }`}>
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -1,5 +1,12 @@
 import axios from 'axios'
 
+// 扩展 axios 配置，支持自定义字段
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuthRedirect?: boolean
+  }
+}
+
 const API_BASE = import.meta.env.PROD ? '' : ''
 
 const api = axios.create({
@@ -26,7 +33,7 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
       localStorage.removeItem('linux-learning-token')
       localStorage.removeItem('linux-learning-user')
       window.location.href = '/login'
@@ -38,9 +45,9 @@ api.interceptors.response.use(
 // Auth APIs
 export const authApi = {
   register: (username: string, password: string) =>
-    api.post('/auth/register', { username, password }),
+    api.post('/auth/register', { username, password }, { skipAuthRedirect: true }),
   login: (username: string, password: string, captchaId?: string, captchaCode?: string) =>
-    api.post('/auth/login', { username, password, captchaId, captchaCode }),
+    api.post('/auth/login', { username, password, captchaId, captchaCode }, { skipAuthRedirect: true }),
   getCaptcha: () =>
     api.get('/auth/captcha'),
   refreshToken: () =>
