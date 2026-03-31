@@ -227,3 +227,125 @@ describe('Chapter 3: 事故响应', () => {
     expect(completed).toBe(true)
   })
 })
+
+// ============================================================
+// Chapter 4: 部署上线 (Levels 21-30)
+// ============================================================
+describe('Chapter 4: 部署上线', () => {
+
+  // Level 21: 构建打包
+  it('Level 21 - 构建打包: npm run build', async () => {
+    const session = await createLevel(21)
+    const { completed } = await execAndValidate(
+      session.id, 21,
+      'cd /home/player/my-app && npm run build'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 22: 构建产物
+  it('Level 22 - 构建产物: ls dist/', async () => {
+    const session = await createLevel(22)
+    const { completed } = await execAndValidate(
+      session.id, 22,
+      'ls /home/player/my-app/dist/'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 23: 部署上线
+  it('Level 23 - 部署上线: cp dist to /var/www/html', async () => {
+    const session = await createLevel(23)
+    const { completed } = await execAndValidate(
+      session.id, 23,
+      'cp /home/player/my-app/dist/index.html /var/www/html/'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 24: 网页验证 (setup starts nginx)
+  it('Level 24 - 网页验证: curl localhost', async () => {
+    const session = await createLevel(24)
+    // nginx is already started by setup command
+    const { completed } = await execAndValidate(
+      session.id, 24,
+      'curl -s http://localhost'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 25: Nginx 配置 (setup gives write access)
+  it('Level 25 - Nginx 配置: create config file', async () => {
+    const session = await createLevel(25)
+    // setup chowns /etc/nginx/http.d/ to player
+    const { completed } = await execAndValidate(
+      session.id, 25,
+      'echo "server { listen 80; root /var/www/html; }" > /etc/nginx/http.d/myapp.conf'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 26: 配置检查
+  it('Level 26 - 配置检查: nginx -t', async () => {
+    const session = await createLevel(26)
+    // Pre-create a valid config for nginx -t to pass
+    await cm.executeCommand(session.id, 'echo "server { listen 80; root /var/www/html; }" > /etc/nginx/http.d/myapp.conf')
+    const { completed } = await execAndValidate(
+      session.id, 26,
+      'nginx -t'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 27: 启动服务
+  it('Level 27 - 启动服务: nginx', async () => {
+    const session = await createLevel(27)
+    // Pre-create config
+    await cm.executeCommand(session.id, 'echo "server { listen 80; root /var/www/html; }" > /etc/nginx/http.d/myapp.conf')
+    const { completed } = await execAndValidate(
+      session.id, 27,
+      'nginx'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 28: 访问测试
+  it('Level 28 - 访问测试: curl localhost', async () => {
+    const session = await createLevel(28)
+    // nginx needs to be running
+    await cm.executeCommand(session.id, 'echo "server { listen 80; root /var/www/html; }" > /etc/nginx/http.d/myapp.conf')
+    await cm.executeCommand(session.id, 'nginx')
+    const { completed } = await execAndValidate(
+      session.id, 28,
+      'curl -s http://localhost'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 29: 日志分析
+  it('Level 29 - 日志分析: curl + check logs', async () => {
+    const session = await createLevel(29)
+    await cm.executeCommand(session.id, 'echo "server { listen 80; root /var/www/html; }" > /etc/nginx/http.d/myapp.conf')
+    await cm.executeCommand(session.id, 'nginx')
+    await cm.executeCommand(session.id, 'curl -s http://localhost > /dev/null')
+    const { completed } = await execAndValidate(
+      session.id, 29,
+      'cat /var/log/nginx/access.log'
+    )
+    expect(completed).toBe(true)
+  })
+
+  // Level 30: 反向代理
+  it('Level 30 - 反向代理: configure and test proxy', async () => {
+    const session = await createLevel(30)
+    // mock-api is running from setup, proxy config is created by setup
+    // User needs to start nginx then test
+    await cm.executeCommand(session.id, 'nginx')
+    await new Promise(r => setTimeout(r, 1000))
+    const { completed } = await execAndValidate(
+      session.id, 30,
+      'curl -s http://localhost'
+    )
+    expect(completed).toBe(true)
+  })
+})
