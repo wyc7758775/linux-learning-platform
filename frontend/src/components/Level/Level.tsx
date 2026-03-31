@@ -43,13 +43,13 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
     <>
       {showFirework && <Firework onComplete={() => setShowFirework(false)} duration={3000} />}
 
-      <div className={`rounded-2xl border overflow-hidden ${
+      <div className={`rounded-2xl border overflow-hidden h-full min-h-0 flex flex-col ${
         isDark
           ? 'bg-slate-800/50 border-slate-700/50'
           : 'bg-white border-slate-200 shadow-sm'
       }`}>
         {/* Header */}
-        <div className={`px-5 pt-5 pb-4 border-b ${
+        <div className={`px-5 pt-5 pb-4 border-b flex-shrink-0 ${
           isDark ? 'border-slate-700/50' : 'border-slate-100'
         }`}>
           <div className="flex items-start justify-between gap-4">
@@ -87,7 +87,9 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4">
+        <div className={`p-5 space-y-4 flex-1 min-h-0 overflow-y-auto ${
+          isDark ? 'scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600' : 'scrollbar-thin scrollbar-track-slate-100 scrollbar-thumb-slate-300'
+        }`} style={{ scrollbarGutter: 'stable' }}>
           {/* Description */}
           <p className={`text-sm leading-relaxed ${
             isDark ? 'text-slate-300' : 'text-slate-600'
