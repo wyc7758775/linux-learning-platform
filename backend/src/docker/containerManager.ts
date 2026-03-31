@@ -20,6 +20,7 @@ export class ContainerManager {
     'adduser', 'useradd', 'userdel', 'usermod',
     'groupadd', 'groupdel', 'groupmod',
     'passwd', 'chown', 'chgrp',
+    'nginx', 'systemctl', 'service',
   ]
 
   // Setup commands to run as root before handing control to player
@@ -39,12 +40,16 @@ export class ContainerManager {
     21: ['mkdir -p /home/player/my-app/dist && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><div id=\\"app\\"></div><script src=\\"/assets/index.js\\"></script></body></html>" > /home/player/my-app/dist/index.html && echo "console.log(\\"Hello Vue!\\")" > /home/player/my-app/dist/assets/index.js && chown -R player:player /home/player/my-app/dist'],
     22: ['mkdir -p /home/player/my-app/dist && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><div id=\\"app\\"></div><script src=\\"/assets/index.js\\"></script></body></html>" > /home/player/my-app/dist/index.html && echo "console.log(\\"Hello Vue!\\")" > /home/player/my-app/dist/assets/index.js && chown -R player:player /home/player/my-app/dist'],
     23: ['mkdir -p /home/player/my-app/dist && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><div id=\\"app\\"></div><script src=\\"/assets/index.js\\"></script></body></html>" > /home/player/my-app/dist/index.html && echo "console.log(\\"Hello Vue!\\")" > /home/player/my-app/dist/assets/index.js && chown -R player:player /home/player/my-app/dist'],
+    // Level 24: start nginx and serve static HTML
+    24: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html && nginx'],
+    // Level 25: give player write access to nginx config dir
+    25: ['chown -R player:player /etc/nginx/http.d'],
     // Level 27-30: start nginx for testing
     27: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
     28: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
     29: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
-    // Level 30: start mock API server for reverse proxy
-    30: ['/usr/local/bin/mock-api > /dev/null 2>&1 &'],
+    // Level 30: start mock API server + configure nginx as reverse proxy
+    30: ['rm -f /etc/nginx/http.d/default.conf && /usr/local/bin/mock-api > /dev/null 2>&1 & sleep 1 && echo "server { listen 80 default_server; location / { proxy_pass http://127.0.0.1:3000; } }" > /etc/nginx/http.d/myapp.conf'],
     // Level 45: create a test file for safe_rm.sh exercise
     45: ['echo "important data" > /home/player/testfile.tmp && chown player:player /home/player/testfile.tmp'],
   }
@@ -400,7 +405,12 @@ export class ContainerManager {
         AttachStderr: true,
       })
 
-      await exec.start({ Detach: false })
+      const stream = await exec.start({ Detach: false })
+      await new Promise<void>((resolve) => {
+        stream.on('data', () => {})
+        stream.on('end', resolve)
+        stream.on('error', resolve)
+      })
       const inspect = await exec.inspect()
       return inspect.ExitCode === 0
     } catch {
@@ -422,7 +432,6 @@ export class ContainerManager {
     const container = this.docker.getContainer(session.containerId)
 
     try {
-      // Resolve path relative to current directory if not absolute
       const fullPath = dirPath.startsWith('/')
         ? dirPath
         : session.currentDir + '/' + dirPath
@@ -433,7 +442,12 @@ export class ContainerManager {
         AttachStderr: true,
       })
 
-      await exec.start({ Detach: false })
+      const stream = await exec.start({ Detach: false })
+      await new Promise<void>((resolve) => {
+        stream.on('data', () => {})
+        stream.on('end', resolve)
+        stream.on('error', resolve)
+      })
       const inspect = await exec.inspect()
       return inspect.ExitCode === 0
     } catch {
