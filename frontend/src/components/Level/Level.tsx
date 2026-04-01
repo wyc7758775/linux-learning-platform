@@ -49,12 +49,12 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
           : 'bg-white border-slate-200 shadow-sm'
       }`}>
         {/* Header */}
-        <div className={`px-5 pt-5 pb-4 border-b flex-shrink-0 ${
+        <div className={`px-5 py-3 border-b flex-shrink-0 ${
           isDark ? 'border-slate-700/50' : 'border-slate-100'
         }`}>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-0.5">
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                   isDark
                     ? 'bg-slate-700 text-slate-300'
@@ -72,15 +72,15 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
                   </span>
                 )}
               </div>
-              <h2 className={`text-lg font-bold truncate ${
+              <h2 className={`text-sm font-bold truncate ${
                 isDark ? 'text-white' : 'text-slate-900'
               }`}>
                 {level.title}
               </h2>
             </div>
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${
+            <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${
               chapterColors[level.chapter] || 'from-purple-500 to-violet-500'
-            } flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0`}>
+            } flex items-center justify-center text-white text-xs font-bold shadow-lg flex-shrink-0`}>
               {level.id}
             </div>
           </div>
