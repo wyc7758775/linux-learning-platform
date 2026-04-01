@@ -41,6 +41,17 @@ const LEVEL_VALIDATIONS: Record<number, ValidationRule> = {
   28: { type: 'output_contains', expected: '<html' },
   29: { type: 'output_contains', expected: 'GET' },
   30: { type: 'output_contains', expected: 'ok' },
+  // Chapter 5: DevOps 实战
+  31: { type: 'output_contains', expected: 'DB_PASSWORD=mysecret123' },
+  32: { type: 'file_permission', expected: '/home/player/start.sh:755' },
+  33: { type: 'output_contains', expected: 'prod' },
+  34: { type: 'output_contains', expected: 'backup' },
+  35: { type: 'file_exists', expected: '/etc/logrotate.d/myapp' },
+  36: { type: 'file_exists', expected: '/home/player/.ssh/id_ed25519.pub' },
+  37: { type: 'directory_exists', expected: '/home/player/backup' },
+  38: { type: 'file_exists', expected: '/home/player/myapp.service' },
+  39: { type: 'output_contains', expected: 'ALARM' },
+  40: { type: 'output_contains', expected: 'Build complete' },
   // Chapter 6: 脚本编程
   41: { type: 'output_contains', expected: 'System Report' },
   42: { type: 'file_content_contains', expected: '/home/player/config.sh:SERVER_IP' },
@@ -65,103 +76,132 @@ export async function validateLevel(
   levelId: number,
   command: string,
   output: string
-): Promise<boolean> {
+): Promise<{ completed: boolean; output: string }> {
   const validation = LEVEL_VALIDATIONS[levelId]
   if (!validation) {
-    return false
+    return { completed: false, output }
   }
 
   console.log(`[Validator] Level ${levelId}, type: ${validation.type}, command: ${command}`)
+  let completed = false
   switch (validation.type) {
     case 'command': {
       const cmd = command.trim()
       const expected = validation.expected
-      return cmd.startsWith(expected) || cmd.includes(expected)
+      completed = cmd.startsWith(expected) || cmd.includes(expected)
+      break
     }
 
     case 'output_contains':
-      return output.includes(validation.expected)
+      completed = output.includes(validation.expected)
+      break
 
     case 'output_number': {
-      // Strip ANSI codes, trim whitespace, compare as number string
       const clean = stripAnsi(output).trim()
       const actualNum = parseInt(clean, 10)
       const expectedNum = parseInt(validation.expected, 10)
       console.log(`[Validator] output_number: actual="${clean}" (${actualNum}), expected=${expectedNum}`)
-      return !isNaN(actualNum) && actualNum === expectedNum
+      completed = !isNaN(actualNum) && actualNum === expectedNum
+      break
     }
 
     case 'output_lines_gte': {
-      // Count non-empty lines in output
       const clean = stripAnsi(output)
       const lines = clean.split('\n').filter(l => l.trim().length > 0)
       const expectedCount = parseInt(validation.expected, 10)
       console.log(`[Validator] output_lines_gte: actual=${lines.length}, expected>=${expectedCount}`)
-      return lines.length >= expectedCount
+      completed = lines.length >= expectedCount
+      break
     }
 
     case 'file_exists':
-      return await containerManager.checkFileExists(sessionId, validation.expected)
+      completed = await containerManager.checkFileExists(sessionId, validation.expected)
+      break
 
     case 'directory_exists':
-      return await containerManager.checkDirectoryExists(sessionId, validation.expected)
+      completed = await containerManager.checkDirectoryExists(sessionId, validation.expected)
+      break
 
     case 'file_content': {
       const content = await containerManager.getFileContent(sessionId, validation.expected)
-      return content.length > 0
+      completed = content.length > 0
+      break
     }
 
     case 'file_permission': {
       const [filePath, permission] = validation.expected.split(':')
       const actualPermission = await containerManager.getFilePermission(sessionId, filePath)
-      return actualPermission === permission
+      completed = actualPermission === permission
+      break
     }
 
     case 'directory_permission': {
       const [dirPath, permission, group] = validation.expected.split(':')
       const actualPermission = await containerManager.getFilePermission(sessionId, dirPath)
-      if (actualPermission !== permission) return false
-      if (group) {
+      if (actualPermission !== permission) {
+        completed = false
+      } else if (group) {
         const actualGroup = await containerManager.getFileGroup(sessionId, dirPath)
-        return actualGroup === group
+        completed = actualGroup === group
+      } else {
+        completed = true
       }
-      return true
+      break
     }
 
     case 'permission_exists': {
       const permission = validation.expected
-      return await containerManager.checkPermissionExists(sessionId, permission)
+      completed = await containerManager.checkPermissionExists(sessionId, permission)
+      break
     }
 
     case 'user_exists': {
       const username = validation.expected
-      return await containerManager.checkUserExists(sessionId, username)
+      completed = await containerManager.checkUserExists(sessionId, username)
+      break
     }
 
     case 'user_in_group': {
       const [username, groupname] = validation.expected.split(':')
-      return await containerManager.checkUserInGroup(sessionId, username, groupname)
+      completed = await containerManager.checkUserInGroup(sessionId, username, groupname)
+      break
     }
 
     case 'nginx_running': {
-      // Check if nginx process is running
       const result = await containerManager.executeCommand(sessionId, 'ps aux | grep nginx')
-      return result.output.includes(validation.expected)
+      completed = result.output.includes(validation.expected)
+      break
     }
 
     case 'env_var_set': {
       const envResult = await containerManager.executeCommand(sessionId, `echo \${${validation.expected}:-}`)
-      return envResult.output.trim().length > 0
+      completed = envResult.output.trim().length > 0
+      break
     }
 
     case 'file_content_contains': {
-      // expected format: "filePath:contentToFind"
       const [filePath, contentToFind] = validation.expected.split(':')
       const content = await containerManager.getFileContent(sessionId, filePath)
-      return content.includes(contentToFind)
+      completed = content.includes(contentToFind)
+      break
     }
 
     default:
-      return false
+      completed = false
   }
+
+  // Post-validation: adduser user-already-exists compensation
+  if (!completed) {
+    const adduserMatch = command.trim().match(/^adduser\s+(\S+)/)
+    if (adduserMatch) {
+      const username = adduserMatch[1]
+      const userExists = await containerManager.checkUserExists(sessionId, username)
+      if (userExists) {
+        completed = true
+        output += `\r\n\x1b[33m💡 用户 ${username} 已存在，任务目标已达成！\x1b[0m`
+      }
+    }
+  }
+
+  return { completed, output }
 }
