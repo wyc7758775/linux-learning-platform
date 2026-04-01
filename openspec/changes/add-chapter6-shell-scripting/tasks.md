@@ -6,4 +6,4 @@
 - [x] 确认 Docker 容器中 bash 可用（Dockerfile.level 已安装 bash，用户 shell 为 /bin/bash）
 - [x] 为需要预置文件的关卡准备容器初始化脚本（日志文件、配置文件等）
 - [x] TypeScript 编译通过，前端正确显示第 6 章 10 个关卡
-- [ ] 端到端测试：需要 Docker 容器环境支持（bash 脚本执行、预置文件等）
+- [x] 端到端测试：添加 Chapter 6 E2E 测试用例（Level 41-50）
