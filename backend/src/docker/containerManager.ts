@@ -50,6 +50,10 @@ export class ContainerManager {
     29: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>My App</title></head><body><h1>Hello Nginx!</h1></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
     // Level 30: start mock API server + configure nginx as reverse proxy
     30: ['rm -f /etc/nginx/http.d/default.conf && /usr/local/bin/mock-api > /dev/null 2>&1 & sleep 1 && echo "server { listen 80 default_server; location / { proxy_pass http://127.0.0.1:3000; } }" > /etc/nginx/http.d/myapp.conf'],
+    // Level 34: make crontab accessible for player (set suid bit)
+    34: ['chmod u+s /usr/bin/crontab'],
+    // Level 35: give player write access to logrotate config dir
+    35: ['chown -R player:player /etc/logrotate.d'],
     // Level 45: create a test file for safe_rm.sh exercise
     45: ['echo "important data" > /home/player/testfile.tmp && chown player:player /home/player/testfile.tmp'],
   }
@@ -92,7 +96,7 @@ export class ContainerManager {
         HostConfig: {
           AutoRemove: true,
           Memory: 128 * 1024 * 1024, // 128MB limit
-          CpuShares: 512, // Lower CPU priority
+          NanoCpus: 500_000_000, // 0.5 CPU cores max
         },
       })
 

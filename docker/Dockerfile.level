@@ -24,6 +24,8 @@ RUN apk add --no-cache \
     nginx \
     nodejs \
     npm \
+    openssh \
+    rsync \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user
