@@ -48,8 +48,8 @@ async function execAndValidate(
   command: string
 ) {
   const { output, currentDir } = await cm.executeCommand(sessionId, command)
-  const completed = await validateLevel(cm, sessionId, levelId, command, output)
-  return { output, currentDir, completed }
+  const result = await validateLevel(cm, sessionId, levelId, command, output)
+  return { output, currentDir, completed: result.completed }
 }
 
 // ============================================================
@@ -739,5 +739,97 @@ describe('Chapter 6: 脚本编程', () => {
     )
     expect(completed).toBe(true)
     expect(output).toContain('Health Check Report')
+  })
+})
+
+// ============================================================
+// Chapter 7: 网络排查 (Levels 51-60)
+// ============================================================
+describe('Chapter 7: 网络排查', () => {
+
+  // Level 51: 网卡在哪
+  it('Level 51 - 网卡在哪: ip addr', async () => {
+    const session = await createLevel(51)
+    const { output, completed } = await execAndValidate(session.id, 51, 'ip addr')
+    expect(completed).toBe(true)
+    expect(output).toContain('inet')
+  })
+
+  // Level 52: 谁在监听
+  it('Level 52 - 谁在监听: ss -tlnp', async () => {
+    const session = await createLevel(52)
+    // nginx is pre-started by setup command
+    const { output, completed } = await execAndValidate(session.id, 52, 'ss -tlnp')
+    expect(completed).toBe(true)
+    expect(output).toContain(':80')
+  })
+
+  // Level 53: 本地服务测试
+  it('Level 53 - 本地服务测试: curl localhost', async () => {
+    const session = await createLevel(53)
+    const { output, completed } = await execAndValidate(session.id, 53, 'curl localhost')
+    expect(completed).toBe(true)
+    expect(output).toContain('html')
+  })
+
+  // Level 54: 响应头诊断
+  it('Level 54 - 响应头诊断: curl -I localhost', async () => {
+    const session = await createLevel(54)
+    const { output, completed } = await execAndValidate(session.id, 54, 'curl -I localhost')
+    expect(completed).toBe(true)
+    expect(output).toContain('200')
+  })
+
+  // Level 55: 详细请求追踪
+  it('Level 55 - 详细请求追踪: curl -v localhost', async () => {
+    const session = await createLevel(55)
+    const { output, completed } = await execAndValidate(session.id, 55, 'curl -v localhost')
+    expect(completed).toBe(true)
+    expect(output).toContain('HTTP/')
+  })
+
+  // Level 56: DNS 解析排查
+  it('Level 56 - DNS 解析排查: nslookup localhost', async () => {
+    const session = await createLevel(56)
+    const { output, completed } = await execAndValidate(session.id, 56, 'nslookup localhost')
+    expect(completed).toBe(true)
+    expect(output).toContain('127.0.0.1')
+  })
+
+  // Level 57: 端口连通性
+  it('Level 57 - 端口连通性: nc -zv localhost 80', async () => {
+    const session = await createLevel(57)
+    // nginx is pre-started by setup command
+    const { output, completed } = await execAndValidate(session.id, 57, 'nc -zv localhost 80')
+    expect(completed).toBe(true)
+    expect(output).toContain('succeeded')
+  })
+
+  // Level 58: 路由走向
+  it('Level 58 - 路由走向: ip route', async () => {
+    const session = await createLevel(58)
+    const { output, completed } = await execAndValidate(session.id, 58, 'ip route')
+    expect(completed).toBe(true)
+    expect(output).toContain('default')
+  })
+
+  // Level 59: 连接数统计
+  it('Level 59 - 连接数统计: ss -s', async () => {
+    const session = await createLevel(59)
+    // nginx is pre-started by setup command
+    const { output, completed } = await execAndValidate(session.id, 59, 'ss -s')
+    expect(completed).toBe(true)
+    expect(output).toContain('TCP')
+  })
+
+  // Level 60: 综合排查 (nginx NOT started, player must start it)
+  it('Level 60 - 综合排查: start nginx + curl localhost', async () => {
+    const session = await createLevel(60)
+    // nginx is NOT started - player needs to start it
+    await cm.executeCommand(session.id, 'nginx')
+    await new Promise(r => setTimeout(r, 500))
+    const { output, completed } = await execAndValidate(session.id, 60, 'curl localhost')
+    expect(completed).toBe(true)
+    expect(output).toContain('html')
   })
 })
