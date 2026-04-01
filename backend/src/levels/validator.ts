@@ -63,6 +63,17 @@ const LEVEL_VALIDATIONS: Record<number, ValidationRule> = {
   48: { type: 'output_contains', expected: 'Checking nginx... OK' },
   49: { type: 'output_contains', expected: 'Server:' },
   50: { type: 'output_contains', expected: 'Health Check Report' },
+  // Chapter 7: 网络排查
+  51: { type: 'output_contains', expected: 'inet' },
+  52: { type: 'output_contains', expected: ':80' },
+  53: { type: 'output_contains', expected: 'html' },
+  54: { type: 'output_contains', expected: '200' },
+  55: { type: 'output_contains', expected: 'HTTP/' },
+  56: { type: 'output_contains', expected: '127.0.0.1' },
+  57: { type: 'output_contains', expected: 'succeeded' },
+  58: { type: 'output_contains', expected: 'default' },
+  59: { type: 'output_contains', expected: 'TCP' },
+  60: { type: 'output_contains', expected: 'html' },
 }
 
 // Strip ANSI escape codes from terminal output
