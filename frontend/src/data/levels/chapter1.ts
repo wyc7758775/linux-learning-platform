@@ -1,0 +1,55 @@
+import type { Level } from "./types";
+
+// Chapter 1: 基础命令 (Level 1-5)
+export const chapter1Levels: Level[] = [
+  {
+    id: 1,
+    chapter: 1,
+    title: "你好，终端",
+    description: "使用 ls 命令查看当前目录的内容",
+    hint: "输入 ls 然后按回车键",
+    command: "ls",
+    validation: { type: "command", expected: "ls" },
+    completed: false,
+  },
+  {
+    id: 2,
+    chapter: 1,
+    title: "我在哪里",
+    description: "使用 pwd 命令查看当前工作目录",
+    hint: "pwd 是 print working directory 的缩写",
+    command: "pwd",
+    validation: { type: "output_contains", expected: "/home/player" },
+    completed: false,
+  },
+  {
+    id: 3,
+    chapter: 1,
+    title: "切换目录",
+    description: "使用 cd 命令进入 home 目录",
+    hint: "输入 cd ~ 或 cd /home/player",
+    command: "cd",
+    validation: { type: "command", expected: "cd" },
+    completed: false,
+  },
+  {
+    id: 4,
+    chapter: 1,
+    title: "清空屏幕",
+    description: "使用 clear 命令清空终端屏幕",
+    hint: "输入 clear 来清理屏幕",
+    command: "clear",
+    validation: { type: "command", expected: "clear" },
+    completed: false,
+  },
+  {
+    id: 5,
+    chapter: 1,
+    title: "命令历史",
+    description: "使用 history 命令查看之前执行过的命令",
+    hint: "history 命令可以显示你输入过的所有命令",
+    command: "history",
+    validation: { type: "command", expected: "history" },
+    completed: false,
+  },
+];

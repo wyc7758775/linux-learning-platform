@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
-import type { Level as LevelType } from '../../levels'
+import type { Level as LevelType } from '../../data/levels'
 import { Firework } from '../Firework/Firework'
 
 interface LevelProps {

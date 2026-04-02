@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '../../contexts/ThemeContext'
-import type { Level } from '../../levels'
+import type { Level } from '../../data/levels'
 
 interface ProgressProps {
   levels: Level[]
