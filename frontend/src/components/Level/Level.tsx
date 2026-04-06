@@ -16,16 +16,22 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
   const [showKnowledge, setShowKnowledge] = useState(true)
   const prevCompletedRef = useRef(false)
   const { isDark } = useTheme()
+  const isCompleted = level.completed || completed
 
   useEffect(() => {
     if (completed && !prevCompletedRef.current) {
       setShowFirework(true)
+    }
+    if (!completed && prevCompletedRef.current) {
+      setShowFirework(false)
     }
     prevCompletedRef.current = completed
   }, [completed])
 
   useEffect(() => {
     setShowHint(false)
+    setShowFirework(false)
+    prevCompletedRef.current = false
   }, [level.id])
 
   const handleNextLevel = () => {
@@ -63,7 +69,7 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
                   <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                   第 {level.chapter} 章
                 </span>
-                {completed && (
+                {isCompleted && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600">
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -244,7 +250,7 @@ export function Level({ level, completed, onNextLevel, hasNextLevel }: LevelProp
           )}
 
           {/* Completion */}
-          {completed && (
+          {isCompleted && (
             <div className={`rounded-xl p-4 border ${
               isDark
                 ? 'bg-green-500/5 border-green-500/20'

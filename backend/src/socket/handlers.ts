@@ -1,12 +1,12 @@
-import { ContainerManager, ContainerSession } from '../docker/containerManager.js'
+import { ContainerManager } from '../docker/containerManager.js'
 import { validateLevel } from '../levels/validator.js'
 
 export async function createSessionHandler(
   containerManager: ContainerManager,
   levelId: number
-): Promise<{ id: string }> {
+) : Promise<{ id: string; currentDir: string }> {
   const session = await containerManager.createContainer(levelId)
-  return { id: session.id }
+  return { id: session.id, currentDir: session.currentDir }
 }
 
 export async function handleTerminalInput(
@@ -24,7 +24,8 @@ export async function handleTerminalInput(
     sessionId,
     levelId,
     command,
-    rawOutput
+    rawOutput,
+    currentDir
   )
 
   return { output, completed, currentDir }

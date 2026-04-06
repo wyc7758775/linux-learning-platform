@@ -11,11 +11,13 @@ import { userApi, wrongRecordApi } from "./services/api";
 import { LEVELS } from "./data/levels";
 import type { Level as LevelType } from "./data/levels";
 import { WrongNotebook } from "./components/WrongNotebook/WrongNotebook";
+import { formatDir, HOME_DIR } from "./utils/terminal";
 
 function App() {
   const [currentLevel, setCurrentLevel] = useState<number>(1);
   const [levels, setLevels] = useState<LevelType[]>(LEVELS);
   const [sessionId, setSessionId] = useState<string>("");
+  const [currentDir, setCurrentDir] = useState<string>(HOME_DIR);
   const [connected, setConnected] = useState(false);
   const [levelCompleted, setLevelCompleted] = useState(false);
   const [progressLoaded, setProgressLoaded] = useState(false);
@@ -90,15 +92,14 @@ function App() {
       setConnected(false);
     });
 
-    socket.on("session:created", (id: string) => {
-      setSessionId(id);
+    socket.on("session:created", (session: { id: string; currentDir: string }) => {
+      setSessionId(session.id);
+      setCurrentDir(session.currentDir);
     });
 
     socket.on("level:completed", (data: { levelId: number }) => {
       const completedLevelId = data.levelId;
-      const nextLevel = completedLevelId + 1;
       setLevelCompleted(true);
-      setCurrentLevel(nextLevel);
       setLevels((prev) => {
         const updated = prev.map((level) =>
           level.id === completedLevelId ? { ...level, completed: true } : level,
@@ -109,7 +110,7 @@ function App() {
         // Save to server or localStorage
         const token = localStorage.getItem("linux-learning-token");
         if (token) {
-          userApi.updateProgress(nextLevel, completedLevels).catch(() => {});
+          userApi.updateProgress(completedLevelId, completedLevels).catch(() => {});
         } else {
           localStorage.setItem(
             "linux-learning-progress",
@@ -117,7 +118,7 @@ function App() {
           );
           localStorage.setItem(
             "linux-learning-current-level",
-            String(nextLevel),
+            String(completedLevelId),
           );
         }
         return updated;
@@ -405,13 +406,18 @@ function App() {
               </div>
               <div className="flex-1 text-center">
                 <span className={`text-xs font-mono ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                  player@linux:~
+                  {`player@linux:${formatDir(currentDir)}`}
                 </span>
               </div>
               <div className="w-16"></div>
             </div>
             <div className="flex-1 min-h-0">
-              <Terminal sessionId={sessionId} levelId={currentLevel} />
+              <Terminal
+                sessionId={sessionId}
+                levelId={currentLevel}
+                initialDir={currentDir}
+                onDirectoryChange={setCurrentDir}
+              />
             </div>
           </div>
         </main>
@@ -430,7 +436,12 @@ function App() {
         </div>
         {/* Terminal hidden but kept alive */}
         <main className="hidden" aria-hidden="true">
-          <Terminal sessionId={sessionId} levelId={currentLevel} />
+          <Terminal
+            sessionId={sessionId}
+            levelId={currentLevel}
+            initialDir={currentDir}
+            onDirectoryChange={setCurrentDir}
+          />
         </main>
       </div>
 

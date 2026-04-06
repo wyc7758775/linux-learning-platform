@@ -4,17 +4,13 @@ import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import { socket } from '../../services/socket'
 import { useTheme } from '../../contexts/ThemeContext'
+import { formatDir, HOME_DIR } from '../../utils/terminal'
 
 interface TerminalProps {
   sessionId: string
   levelId: number
-}
-
-function formatDir(dir: string): string {
-  const home = '/home/player'
-  if (dir === home) return '~'
-  if (dir.startsWith(home + '/')) return '~' + dir.slice(home.length)
-  return dir
+  initialDir: string
+  onDirectoryChange?: (dir: string) => void
 }
 
 function generatePrompt(currentDir: string): string {
@@ -22,14 +18,14 @@ function generatePrompt(currentDir: string): string {
   return `\x1b[1;34mplayer@linux\x1b[0m:\x1b[1;36m${dirDisplay}\x1b[0m$ `
 }
 
-export function Terminal({ sessionId, levelId }: TerminalProps) {
+export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const inputBufferRef = useRef<string>('')
   const sessionIdRef = useRef<string>(sessionId)
   const levelIdRef = useRef<number>(levelId)
-  const currentDirRef = useRef<string>('/home/player')
+  const currentDirRef = useRef<string>(initialDir || HOME_DIR)
   const { isDark } = useTheme()
 
   useEffect(() => {
@@ -167,18 +163,20 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
   useEffect(() => {
     if (xtermRef.current && sessionId) {
       xtermRef.current.clear()
-      currentDirRef.current = '/home/player'
+      currentDirRef.current = initialDir
+      onDirectoryChange?.(initialDir)
       xtermRef.current.writeln('\x1b[1;36m  会话已创建，开始关卡 ' + levelId + '\x1b[0m')
       xtermRef.current.writeln('')
       xtermRef.current.write(generatePrompt(currentDirRef.current))
     }
-  }, [sessionId, levelId, isDark])
+  }, [sessionId, levelId, initialDir, onDirectoryChange])
 
   useEffect(() => {
     const handleOutput = (data: { output: string; currentDir?: string }) => {
       if (xtermRef.current) {
         if (data.currentDir) {
           currentDirRef.current = data.currentDir
+          onDirectoryChange?.(data.currentDir)
         }
 
         if (data.output) {
@@ -194,7 +192,7 @@ export function Terminal({ sessionId, levelId }: TerminalProps) {
     return () => {
       socket.off('terminal:output', handleOutput)
     }
-  }, [isDark])
+  }, [onDirectoryChange])
 
   return (
     <div

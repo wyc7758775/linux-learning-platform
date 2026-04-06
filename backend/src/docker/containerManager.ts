@@ -67,6 +67,10 @@ export class ContainerManager {
     60: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>Network Lab</title></head><body><h1>Welcome</h1><p>Server is running</p></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
   }
 
+  private getInitialCurrentDir(levelId: number): string {
+    return levelId === 3 ? '/tmp' : '/home/player'
+  }
+
   constructor() {
     this.docker = new Docker()
   }
@@ -131,12 +135,14 @@ export class ContainerManager {
         }
       }
 
+      const initialCurrentDir = this.getInitialCurrentDir(levelId)
+
       const session: ContainerSession = {
         id: sessionId,
         containerId: container.id,
         levelId,
         createdAt: new Date(),
-        currentDir: '/home/player',
+        currentDir: initialCurrentDir,
         commandHistory: [],
       }
 

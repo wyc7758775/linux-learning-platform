@@ -48,7 +48,7 @@ async function execAndValidate(
   command: string
 ) {
   const { output, currentDir } = await cm.executeCommand(sessionId, command)
-  const result = await validateLevel(cm, sessionId, levelId, command, output)
+  const result = await validateLevel(cm, sessionId, levelId, command, output, currentDir)
   return { output, currentDir, completed: result.completed }
 }
 
@@ -69,6 +69,11 @@ describe('Chapter 1: 终端初识', () => {
     const session = await createLevel(2)
     const { completed } = await execAndValidate(session.id, 2, 'pwd')
     expect(completed).toBe(true)
+  })
+
+  it('Level 3 - 初始目录应为 /tmp', async () => {
+    const session = await createLevel(3)
+    expect(session.currentDir).toBe('/tmp')
   })
 
   // Level 3: 切换目录

@@ -54,7 +54,7 @@ io.on("connection", (socket) => {
       );
       socket.data.sessionId = session.id;
       socket.data.levelId = data.levelId;
-      socket.emit("session:created", session.id);
+      socket.emit("session:created", session);
       console.log(`Session created: ${session.id} for level ${data.levelId}`);
     } catch (error) {
       console.error("Failed to create session:", error);

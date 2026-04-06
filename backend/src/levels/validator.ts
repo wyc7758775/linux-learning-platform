@@ -10,7 +10,7 @@ const LEVEL_VALIDATIONS: Record<number, ValidationRule> = {
   // Chapter 1: 基础命令
   1: { type: 'command', expected: 'ls' },
   2: { type: 'output_contains', expected: '/home/player' },
-  3: { type: 'command', expected: 'cd' },
+  3: { type: 'command', expected: 'cd_home' },
   4: { type: 'command', expected: 'clear' },
   5: { type: 'command', expected: 'history' },
   // Chapter 2: 权限实战
@@ -86,7 +86,8 @@ export async function validateLevel(
   sessionId: string,
   levelId: number,
   command: string,
-  output: string
+  output: string,
+  currentDir?: string
 ): Promise<{ completed: boolean; output: string }> {
   const validation = LEVEL_VALIDATIONS[levelId]
   if (!validation) {
@@ -99,7 +100,12 @@ export async function validateLevel(
     case 'command': {
       const cmd = command.trim()
       const expected = validation.expected
-      completed = cmd.startsWith(expected) || cmd.includes(expected)
+      if (expected === 'cd_home') {
+        // Level 3: must use cd, and end up in /home/player
+        completed = /^cd(\s|$)/.test(cmd) && !!currentDir && currentDir === '/home/player'
+      } else {
+        completed = cmd.startsWith(expected) || cmd.includes(expected)
+      }
       break
     }
 
