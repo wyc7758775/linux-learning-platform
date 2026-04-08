@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Level } from "./components/Level/Level";
 import { Terminal } from "./components/Terminal/Terminal";
 import { Progress } from "./components/Progress/Progress";
@@ -24,8 +24,13 @@ function App() {
   const [activeTab, setActiveTab] = useState<"learn" | "notebook">("learn");
   const [tabAnim, setTabAnim] = useState<"learn" | "notebook" | null>(null);
   const [wrongRecordCount, setWrongRecordCount] = useState(0);
+  const levelsRef = useRef<LevelType[]>(LEVELS);
   const { isDark } = useTheme();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    levelsRef.current = levels;
+  }, [levels]);
 
   // Load progress from server on mount
   useEffect(() => {
@@ -99,7 +104,16 @@ function App() {
 
     socket.on("level:completed", (data: { levelId: number }) => {
       const completedLevelId = data.levelId;
-      setLevelCompleted(true);
+      const previousLevels = levelsRef.current;
+      const currentLevelState = previousLevels.find((level) => level.id === completedLevelId);
+      const nextLevel = previousLevels.find((level) => level.id === completedLevelId + 1);
+      const shouldShowCompletionPrompt =
+        !!currentLevelState &&
+        !currentLevelState.completed &&
+        !!nextLevel &&
+        !nextLevel.completed;
+
+      setLevelCompleted(shouldShowCompletionPrompt);
       setLevels((prev) => {
         const updated = prev.map((level) =>
           level.id === completedLevelId ? { ...level, completed: true } : level,
@@ -374,6 +388,7 @@ function App() {
                 <Level
                   level={activeLevel}
                   completed={levelCompleted}
+                  showCompletionPrompt={levelCompleted}
                   onNextLevel={handleNextLevel}
                   hasNextLevel={currentLevel < levels.length}
                 />
