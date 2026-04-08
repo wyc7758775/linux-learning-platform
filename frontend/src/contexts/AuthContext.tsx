@@ -43,6 +43,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const getLocalCompletedLevels = () => {
+    try {
+      const savedProgress = localStorage.getItem('linux-learning-progress')
+      if (!savedProgress) return []
+
+      const parsed = JSON.parse(savedProgress)
+      return Array.isArray(parsed.completedLevels) ? parsed.completedLevels : []
+    } catch {
+      return []
+    }
+  }
+
+  const clearLocalGuestProgress = () => {
+    localStorage.removeItem('linux-learning-progress')
+    localStorage.removeItem('linux-learning-current-level')
+  }
+
   const login = async (username: string, password: string, captchaId?: string, captchaCode?: string) => {
     const res = await authApi.login(username, password, captchaId, captchaCode)
     const { token, user: userData } = res.data
@@ -50,17 +67,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('linux-learning-user', JSON.stringify(userData))
     setUser(userData)
 
-    // Migrate localStorage progress on first login
+    // Only migrate guest progress into an empty server profile.
     try {
-      const savedProgress = localStorage.getItem('linux-learning-progress')
-      if (savedProgress) {
-        const { completedLevels } = JSON.parse(savedProgress)
-        if (completedLevels?.length > 0) {
+      const completedLevels = getLocalCompletedLevels()
+      if (completedLevels.length > 0) {
+        const serverProgress = await userApi.getProgress()
+        if (
+          serverProgress.data.currentLevel === 1 &&
+          Array.isArray(serverProgress.data.completedLevels) &&
+          serverProgress.data.completedLevels.length === 0
+        ) {
           await userApi.migrateProgress(completedLevels)
         }
       }
     } catch {
       // Migration failure is non-critical
+    } finally {
+      clearLocalGuestProgress()
     }
 
     return res.data
@@ -73,17 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('linux-learning-user', JSON.stringify(userData))
     setUser(userData)
 
-    // Migrate localStorage progress on first register
+    // New accounts can inherit guest progress once.
     try {
-      const savedProgress = localStorage.getItem('linux-learning-progress')
-      if (savedProgress) {
-        const { completedLevels } = JSON.parse(savedProgress)
-        if (completedLevels?.length > 0) {
-          await userApi.migrateProgress(completedLevels)
-        }
+      const completedLevels = getLocalCompletedLevels()
+      if (completedLevels.length > 0) {
+        await userApi.migrateProgress(completedLevels)
       }
     } catch {
       // Migration failure is non-critical
+    } finally {
+      clearLocalGuestProgress()
     }
 
     return res.data
