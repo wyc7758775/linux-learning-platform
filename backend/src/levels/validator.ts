@@ -103,6 +103,9 @@ export async function validateLevel(
       if (expected === 'cd_home') {
         // Level 3: must use cd, and end up in /home/player
         completed = /^cd(\s|$)/.test(cmd) && !!currentDir && currentDir === '/home/player'
+      } else if (levelId === 5 && expected === 'history') {
+        const cleanOutput = stripAnsi(output).trim()
+        completed = cmd === 'history' && cleanOutput.length > 0
       } else {
         completed = cmd.startsWith(expected) || cmd.includes(expected)
       }

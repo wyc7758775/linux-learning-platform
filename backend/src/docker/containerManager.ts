@@ -67,6 +67,10 @@ export class ContainerManager {
     60: ['mkdir -p /var/www/html && echo "<!DOCTYPE html><html><head><title>Network Lab</title></head><body><h1>Welcome</h1><p>Server is running</p></body></html>" > /var/www/html/index.html && chown -R player:player /var/www/html'],
   }
 
+  private readonly LEVEL_PRESET_HISTORY: Record<number, string[]> = {
+    5: ['ls', 'pwd', 'clear'],
+  }
+
   private getInitialCurrentDir(levelId: number): string {
     return levelId === 3 ? '/tmp' : '/home/player'
   }
@@ -143,7 +147,7 @@ export class ContainerManager {
         levelId,
         createdAt: new Date(),
         currentDir: initialCurrentDir,
-        commandHistory: [],
+        commandHistory: [...(this.LEVEL_PRESET_HISTORY[levelId] || [])],
       }
 
       this.sessions.set(sessionId, session)
@@ -204,6 +208,9 @@ export class ContainerManager {
         const adduserMatch = processed.match(/^(adduser)\s+(?!.*-D)(.*)$/)
         if (adduserMatch) {
           processed = `adduser -D ${adduserMatch[2]}`
+        }
+        if (/^groupadd(\s|$)/.test(processed) && !processed.includes('|| true')) {
+          processed = `${processed} 2>/dev/null || true`
         }
         // Replace leading whitespace + command with sudo version
         return part.replace(trimmed, `/usr/bin/sudo ${processed}`)
