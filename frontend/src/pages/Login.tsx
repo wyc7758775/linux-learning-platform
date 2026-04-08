@@ -30,10 +30,11 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const normalizedUsername = username.trim()
     setLoading(true)
 
     try {
-      await login(username, password, needCaptcha ? captchaId : undefined, needCaptcha ? captchaCode : undefined)
+      await login(normalizedUsername, password, needCaptcha ? captchaId : undefined, needCaptcha ? captchaCode : undefined)
       navigate('/')
     } catch (err: any) {
       const data = err.response?.data

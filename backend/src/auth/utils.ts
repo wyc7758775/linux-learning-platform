@@ -26,6 +26,10 @@ export function getRandomAvatar(): string {
   return EMOJI_AVATARS[Math.floor(Math.random() * EMOJI_AVATARS.length)]
 }
 
+export function normalizeUsername(username: string): string {
+  return username.trim()
+}
+
 export function validateUsername(username: string): string | null {
   if (!username || username.length < USERNAME_MIN_LENGTH || username.length > USERNAME_MAX_LENGTH) {
     return `用户名长度必须为 ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} 个字符`

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import db from '../db/index.js'
-import { hashPassword, comparePassword, signToken, verifyToken, getRandomAvatar, validateUsername, validatePassword } from '../auth/utils.js'
+import { hashPassword, comparePassword, signToken, verifyToken, getRandomAvatar, validateUsername, validatePassword, normalizeUsername } from '../auth/utils.js'
 import { generateCaptcha, verifyCaptcha } from '../auth/captcha.js'
 import { MAX_LOGIN_FAIL_COUNT } from '../constants.js'
 
@@ -9,7 +9,8 @@ const router = Router()
 // POST /api/auth/register
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body
+    const username = normalizeUsername(req.body.username ?? '')
+    const { password } = req.body
 
     // Validate username
     const usernameError = validateUsername(username)
@@ -55,6 +56,10 @@ router.post('/register', async (req: Request, res: Response) => {
       },
     })
   } catch (err) {
+    if ((err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      res.status(409).json({ error: '用户名已存在' })
+      return
+    }
     console.error('Register error:', err)
     res.status(500).json({ error: '注册失败，请稍后重试' })
   }
@@ -63,7 +68,8 @@ router.post('/register', async (req: Request, res: Response) => {
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { username, password, captchaId, captchaCode } = req.body
+    const username = normalizeUsername(req.body.username ?? '')
+    const { password, captchaId, captchaCode } = req.body
 
     if (!username || !password) {
       res.status(400).json({ error: '请提供用户名和密码' })

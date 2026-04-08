@@ -16,6 +16,7 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const normalizedUsername = username.trim()
 
     if (password !== confirmPassword) {
       setError('两次输入的密码不一致')
@@ -24,7 +25,7 @@ export default function Register() {
 
     setLoading(true)
     try {
-      await register(username, password)
+      await register(normalizedUsername, password)
       navigate('/')
     } catch (err: any) {
       setError(err.response?.data?.error || '注册失败')
