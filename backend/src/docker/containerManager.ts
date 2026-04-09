@@ -395,6 +395,11 @@ export class ContainerManager {
     return '/' + result.join('/')
   }
 
+  getCommandHistory(sessionId: string): string[] {
+    const session = this.sessions.get(sessionId)
+    return session ? [...session.commandHistory] : []
+  }
+
   async destroyContainer(sessionId: string): Promise<void> {
     const session = this.sessions.get(sessionId)
     if (!session) {

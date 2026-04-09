@@ -151,7 +151,20 @@ export async function validateLevel(
     case 'file_permission': {
       const [filePath, permission] = validation.expected.split(':')
       const actualPermission = await containerManager.getFilePermission(sessionId, filePath)
-      completed = actualPermission === permission
+      if (levelId === 8) {
+        const cmd = command.trim()
+        const history = containerManager.getCommandHistory(sessionId)
+        const hasUpdatedPermission = history.some((item) => item.includes('chmod 600') && item.includes(filePath))
+        const isInspectingPermission =
+          cmd === `ls -l ${filePath}` ||
+          cmd === `stat ${filePath}` ||
+          cmd === `stat -c "%a %n" ${filePath}` ||
+          cmd === `stat -c '%a %n' ${filePath}`
+
+        completed = actualPermission === permission && hasUpdatedPermission && isInspectingPermission
+      } else {
+        completed = actualPermission === permission
+      }
       break
     }
 
@@ -177,13 +190,33 @@ export async function validateLevel(
 
     case 'user_exists': {
       const username = validation.expected
-      completed = await containerManager.checkUserExists(sessionId, username)
+      if (levelId === 6) {
+        const cmd = command.trim()
+        const history = containerManager.getCommandHistory(sessionId)
+        const hasCreatedUser = history.some((item) => /^adduser(\s+-D)?\s+alice$/.test(item))
+        const userExists = await containerManager.checkUserExists(sessionId, username)
+        const isInspectingUser = /^(id|getent\s+passwd)\s+alice$/.test(cmd)
+
+        completed = userExists && hasCreatedUser && isInspectingUser
+      } else {
+        completed = await containerManager.checkUserExists(sessionId, username)
+      }
       break
     }
 
     case 'user_in_group': {
       const [username, groupname] = validation.expected.split(':')
-      completed = await containerManager.checkUserInGroup(sessionId, username, groupname)
+      if (levelId === 7) {
+        const cmd = command.trim()
+        const history = containerManager.getCommandHistory(sessionId)
+        const hasUpdatedGroup = history.some((item) => /^usermod(\s|$)/.test(item) && item.includes('-aG') && item.includes('developers') && item.includes('alice'))
+        const isInspectingUser = /^(id|groups|getent\s+passwd)\s+alice$/.test(cmd)
+        const userInGroup = await containerManager.checkUserInGroup(sessionId, username, groupname)
+
+        completed = userInGroup && hasUpdatedGroup && isInspectingUser
+      } else {
+        completed = await containerManager.checkUserInGroup(sessionId, username, groupname)
+      }
       break
     }
 
