@@ -121,9 +121,24 @@ export const chapter2Levels: Level[] = [
     id: 10,
     chapter: 2,
     title: "脚本跑不起来",
-    description: 'deploy.sh 运行时报 "Permission denied"？修复它！',
-    hint: "chmod +x 可以给脚本添加执行权限",
-    command: "chmod +x /home/player/deploy.sh",
+    description: '线上发布前你要先跑一次 deploy.sh 做自检，但现在直接执行会报 "Permission denied"。先修复执行权限，再亲自把脚本跑成功确认输出。',
+    objective: "先给 /home/player/deploy.sh 添加执行权限，再直接执行脚本，看到终端输出成功信息。",
+    hint: "这关需要两步：先 chmod +x 或 chmod 755，再执行 ./deploy.sh 或 /home/player/deploy.sh。",
+    command: "./deploy.sh",
+    knowledgeCards: [
+      {
+        command: "chmod +x /home/player/deploy.sh",
+        description: "给脚本增加可执行权限。对脚本文件来说，这是最常见的修复 Permission denied 的方式。",
+      },
+      {
+        command: "./deploy.sh",
+        description: "在当前目录直接执行脚本。前提是文件本身有执行权限，并且脚本开头有正确的 shebang。",
+      },
+      {
+        command: "755 / +x",
+        description: "755 表示所有者可读写执行，组和其他人可读执行。`chmod +x` 是在原权限基础上增加执行位，适合让脚本变得可直接运行。",
+      },
+    ],
     validation: {
       type: "file_permission",
       expected: "/home/player/deploy.sh:755",

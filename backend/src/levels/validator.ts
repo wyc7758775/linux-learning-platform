@@ -162,6 +162,20 @@ export async function validateLevel(
           cmd === `stat -c '%a %n' ${filePath}`
 
         completed = actualPermission === permission && hasUpdatedPermission && isInspectingPermission
+      } else if (levelId === 10) {
+        const cmd = command.trim()
+        const history = containerManager.getCommandHistory(sessionId)
+        const hasUpdatedPermission = history.some((item) =>
+          (item.includes('chmod 755') || item.includes('chmod +x')) && item.includes(filePath)
+        )
+        const executedScript =
+          cmd === './deploy.sh' ||
+          cmd === '/home/player/deploy.sh'
+        const scriptSucceeded =
+          output.includes('Deploying application...') &&
+          output.includes('Done!')
+
+        completed = actualPermission === permission && hasUpdatedPermission && executedScript && scriptSucceeded
       } else {
         completed = actualPermission === permission
       }
