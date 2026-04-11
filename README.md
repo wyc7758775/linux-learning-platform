@@ -8,6 +8,7 @@
 - **终端**: xterm.js
 - **后端**: Node.js + Express + TypeScript + Socket.IO
 - **容器**: Docker (为每个关卡提供隔离的 Linux 环境)
+ - 三个容器，前后端以及关卡容器，占用内存还是很大的
 
 ## 快速开始
 
