@@ -187,10 +187,27 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
       }
     }
 
+    const handleSessionExpired = () => {
+      if (!xtermRef.current) return
+
+      xtermRef.current.writeln('\x1b[33m⚠ 会话已过期，环境已重新初始化\x1b[0m')
+    }
+
+    const handleSessionError = (data: { message: string }) => {
+      if (!xtermRef.current) return
+
+      xtermRef.current.write(`\r\n\x1b[31mError: ${data.message}\x1b[0m`)
+      xtermRef.current.write('\r\n' + generatePrompt(currentDirRef.current))
+    }
+
     socket.on('terminal:output', handleOutput)
+    socket.on('session:expired', handleSessionExpired)
+    socket.on('session:error', handleSessionError)
 
     return () => {
       socket.off('terminal:output', handleOutput)
+      socket.off('session:expired', handleSessionExpired)
+      socket.off('session:error', handleSessionError)
     }
   }, [onDirectoryChange])
 

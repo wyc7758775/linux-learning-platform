@@ -6,7 +6,10 @@ import {
   createSessionHandler,
   handleTerminalInput,
 } from "./socket/handlers.js";
-import { ContainerManager } from "./docker/containerManager.js";
+import {
+  ContainerCapacityError,
+  ContainerManager,
+} from "./docker/containerManager.js";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import wrongRecordRoutes from "./routes/wrongRecords.js";
@@ -41,6 +44,18 @@ app.get("/health", (_, res) => {
 // Initialize container manager
 const containerManager = new ContainerManager();
 
+function getUserFacingErrorMessage(error: unknown): string {
+  if (error instanceof ContainerCapacityError) {
+    return error.message;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Unknown error";
+}
+
 // Socket.IO connection handling
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
@@ -48,6 +63,12 @@ io.on("connection", (socket) => {
   // Handle session creation
   socket.on("session:create", async (data: { levelId: number }) => {
     try {
+      const previousSessionId = socket.data.sessionId;
+      if (previousSessionId) {
+        socket.data.sessionId = undefined;
+        await containerManager.destroyContainer(previousSessionId);
+      }
+
       const session = await createSessionHandler(
         containerManager,
         data.levelId,
@@ -58,7 +79,9 @@ io.on("connection", (socket) => {
       console.log(`Session created: ${session.id} for level ${data.levelId}`);
     } catch (error) {
       console.error("Failed to create session:", error);
-      socket.emit("error", { message: "Failed to create session" });
+      socket.emit("session:error", {
+        message: getUserFacingErrorMessage(error),
+      });
     }
   });
 
@@ -74,6 +97,10 @@ io.on("connection", (socket) => {
           data.levelId,
         );
 
+        if (result.reconnected) {
+          socket.emit("session:expired");
+        }
+
         // Send output back to client with current directory
         socket.emit("terminal:output", {
           output: result.output,
@@ -86,8 +113,7 @@ io.on("connection", (socket) => {
         }
       } catch (error) {
         console.error("Failed to handle terminal input:", error);
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
+        const errorMessage = getUserFacingErrorMessage(error);
         socket.emit("terminal:output", {
           output: `\x1b[31mError: ${errorMessage}\x1b[0m`,
         });
@@ -110,15 +136,31 @@ io.on("connection", (socket) => {
   });
 });
 
-// Cleanup on server shutdown
-process.on("SIGTERM", async () => {
+const PORT = process.env.PORT || 3001;
+
+async function shutdown() {
   console.log("Shutting down...");
   await containerManager.cleanup();
   process.exit(0);
+}
+
+process.on("SIGTERM", () => {
+  void shutdown();
 });
 
-const PORT = process.env.PORT || 3001;
+process.on("SIGINT", () => {
+  void shutdown();
+});
 
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+async function bootstrap() {
+  await containerManager.initialize();
+
+  httpServer.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+void bootstrap().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
 });

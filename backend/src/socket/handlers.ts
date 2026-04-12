@@ -14,9 +14,9 @@ export async function handleTerminalInput(
   sessionId: string,
   command: string,
   levelId: number
-): Promise<{ output: string; completed: boolean; currentDir: string }> {
+): Promise<{ output: string; completed: boolean; currentDir: string; reconnected: boolean }> {
   // Execute command in container
-  const { output: rawOutput, currentDir } = await containerManager.executeCommand(sessionId, command)
+  const { output: rawOutput, currentDir, reconnected } = await containerManager.executeCommand(sessionId, command)
 
   // Validate if level is completed
   const { completed, output } = await validateLevel(
@@ -28,5 +28,5 @@ export async function handleTerminalInput(
     currentDir
   )
 
-  return { output, completed, currentDir }
+  return { output, completed, currentDir, reconnected }
 }

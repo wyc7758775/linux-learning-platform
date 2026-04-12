@@ -102,6 +102,10 @@ function App() {
       setCurrentDir(session.currentDir);
     });
 
+    socket.on("session:error", () => {
+      setSessionId("");
+    });
+
     socket.on("level:completed", (data: { levelId: number }) => {
       const completedLevelId = data.levelId;
       const previousLevels = levelsRef.current;
@@ -143,12 +147,14 @@ function App() {
       socket.off("connect");
       socket.off("disconnect");
       socket.off("session:created");
+      socket.off("session:error");
       socket.off("level:completed");
     };
   }, []);
 
   useEffect(() => {
     if (connected && currentLevel) {
+      setSessionId("");
       socket.emit("session:create", { levelId: currentLevel });
     }
   }, [connected, currentLevel]);
