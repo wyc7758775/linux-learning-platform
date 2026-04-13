@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { ErrorType } from "../utils/classifyError";
 
 // 扩展 axios 配置，支持自定义字段
 declare module "axios" {
@@ -81,10 +82,14 @@ export const userApi = {
 export const wrongRecordApi = {
   getList: () => api.get("/wrong-records"),
   getCount: () => api.get("/wrong-records/count"),
-  create: (levelId: number, command: string, output: string, hint: string) =>
-    api.post("/wrong-records", { levelId, command, output, hint }),
-  remove: (id: number) => api.delete(`/wrong-records/${id}`),
-  seed: () => api.post("/wrong-records/seed"),
+  create: (
+    levelId: number,
+    command: string,
+    output: string,
+    hint: string,
+    errorType: ErrorType,
+  ) => api.post("/wrong-records", { levelId, command, output, hint, errorType }),
+  archive: (id: number) => api.patch(`/wrong-records/${id}/archive`),
 };
 
 export default api;

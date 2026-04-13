@@ -11,6 +11,7 @@ interface TerminalProps {
   levelId: number
   initialDir: string
   onDirectoryChange?: (dir: string) => void
+  onCommandResult?: (command: string, output: string, completed: boolean) => void
 }
 
 function generatePrompt(currentDir: string): string {
@@ -18,11 +19,18 @@ function generatePrompt(currentDir: string): string {
   return `\x1b[1;34mplayer@linux\x1b[0m:\x1b[1;36m${dirDisplay}\x1b[0m$ `
 }
 
-export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: TerminalProps) {
+export function Terminal({
+  sessionId,
+  levelId,
+  initialDir,
+  onDirectoryChange,
+  onCommandResult,
+}: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const inputBufferRef = useRef<string>('')
+  const lastCommandRef = useRef<string>('')
   const sessionIdRef = useRef<string>(sessionId)
   const levelIdRef = useRef<number>(levelId)
   const currentDirRef = useRef<string>(initialDir || HOME_DIR)
@@ -36,11 +44,19 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
     levelIdRef.current = levelId
   }, [levelId])
 
+  const fitTerminal = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      if (fitAddonRef.current && xtermRef.current) {
+        fitAddonRef.current.fit()
+      }
+    })
+  }, [])
+
   const handleResize = useCallback(() => {
     if (fitAddonRef.current && xtermRef.current) {
-      fitAddonRef.current.fit()
+      fitTerminal()
     }
-  }, [])
+  }, [fitTerminal])
 
   useEffect(() => {
     if (!terminalRef.current) return
@@ -103,12 +119,23 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
     const fitAddon = new FitAddon()
     xterm.loadAddon(fitAddon)
     xterm.open(terminalRef.current)
-    fitAddon.fit()
+    fitTerminal()
 
     xtermRef.current = xterm
     fitAddonRef.current = fitAddon
 
     window.addEventListener('resize', handleResize)
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            fitTerminal()
+          })
+        : null
+
+    if (resizeObserver) {
+      resizeObserver.observe(terminalRef.current)
+    }
 
     // Welcome message
     xterm.writeln('')
@@ -127,6 +154,7 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
         if (command) {
           const currentSessionId = sessionIdRef.current
           if (currentSessionId) {
+            lastCommandRef.current = command
             socket.emit('terminal:input', {
               sessionId: currentSessionId,
               command,
@@ -156,9 +184,10 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
 
     return () => {
       window.removeEventListener('resize', handleResize)
+      resizeObserver?.disconnect()
       xterm.dispose()
     }
-  }, [isDark, handleResize])
+  }, [isDark, fitTerminal, handleResize])
 
   useEffect(() => {
     if (xtermRef.current && sessionId) {
@@ -172,7 +201,11 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
   }, [sessionId, levelId, initialDir, onDirectoryChange])
 
   useEffect(() => {
-    const handleOutput = (data: { output: string; currentDir?: string }) => {
+    const handleOutput = (data: {
+      output: string
+      currentDir?: string
+      completed?: boolean
+    }) => {
       if (xtermRef.current) {
         if (data.currentDir) {
           currentDirRef.current = data.currentDir
@@ -181,6 +214,10 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
 
         if (data.output) {
           xtermRef.current.write(data.output)
+        }
+
+        if (data.completed === false && lastCommandRef.current) {
+          onCommandResult?.(lastCommandRef.current, data.output || '', false)
         }
 
         xtermRef.current.write('\r\n' + generatePrompt(currentDirRef.current))
@@ -209,7 +246,7 @@ export function Terminal({ sessionId, levelId, initialDir, onDirectoryChange }: 
       socket.off('session:expired', handleSessionExpired)
       socket.off('session:error', handleSessionError)
     }
-  }, [onDirectoryChange])
+  }, [onCommandResult, onDirectoryChange])
 
   return (
     <div

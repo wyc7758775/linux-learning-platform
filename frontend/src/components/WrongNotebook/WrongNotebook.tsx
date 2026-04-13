@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { wrongRecordApi } from "../../services/api";
 import type { Level } from "../../data/levels";
+import { classifyError } from "../../utils/classifyError";
+import type { ErrorType } from "../../utils/classifyError";
 
 interface WrongNotebookProps {
   levels: Level[];
@@ -17,6 +19,8 @@ interface WrongRecord {
   id: number;
   levelId: number;
   detail: WrongRecordDetail | null;
+  errorType: ErrorType;
+  attemptCount: number;
   createdAt: number;
 }
 
@@ -111,6 +115,48 @@ function getDefaultChapter() {
   };
 }
 
+const errorTypeStyles: Record<
+  ErrorType,
+  { bg: string; text: string; darkBg: string; darkText: string }
+> = {
+  permission: {
+    bg: "bg-orange-50",
+    text: "text-orange-600",
+    darkBg: "bg-orange-500/10",
+    darkText: "text-orange-400",
+  },
+  notfound: {
+    bg: "bg-red-50",
+    text: "text-red-600",
+    darkBg: "bg-red-500/10",
+    darkText: "text-red-400",
+  },
+  syntax: {
+    bg: "bg-purple-50",
+    text: "text-purple-600",
+    darkBg: "bg-purple-500/10",
+    darkText: "text-purple-400",
+  },
+  command: {
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+    darkBg: "bg-amber-500/10",
+    darkText: "text-amber-400",
+  },
+  empty: {
+    bg: "bg-slate-50",
+    text: "text-slate-600",
+    darkBg: "bg-slate-500/10",
+    darkText: "text-slate-400",
+  },
+  logic: {
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+    darkBg: "bg-blue-500/10",
+    darkText: "text-blue-400",
+  },
+};
+
 export function WrongNotebook({ levels }: WrongNotebookProps) {
   const { isDark } = useTheme();
   const [records, setRecords] = useState<WrongRecord[]>([]);
@@ -158,24 +204,14 @@ export function WrongNotebook({ levels }: WrongNotebookProps) {
     }));
   })();
 
-  const handleDelete = async (id: number) => {
+  const handleArchive = async (id: number) => {
     try {
-      await wrongRecordApi.remove(id);
-      setRecords((prev) => prev.filter((r) => r.id !== id));
+      await wrongRecordApi.archive(id);
+      const remaining = records.filter((r) => r.id !== id);
+      setRecords(remaining);
       if (selectedRecord?.id === id) {
-        const remaining = records.filter((r) => r.id !== id);
         setSelectedRecord(remaining.length > 0 ? remaining[0] : null);
       }
-    } catch {
-      // silently fail
-    }
-  };
-
-  const handleSeed = async () => {
-    try {
-      await wrongRecordApi.seed();
-      setLoading(true);
-      await fetchRecords();
     } catch {
       // silently fail
     }
@@ -250,16 +286,6 @@ export function WrongNotebook({ levels }: WrongNotebookProps) {
           >
             继续挑战关卡吧！做错的题目会自动记录在这里，方便你回顾和巩固。
           </p>
-          <button
-            onClick={handleSeed}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-              isDark
-                ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                : "bg-slate-200 text-slate-600 hover:bg-slate-300"
-            }`}
-          >
-            加载测试数据
-          </button>
         </div>
       </div>
     );
@@ -394,7 +420,7 @@ export function WrongNotebook({ levels }: WrongNotebookProps) {
                   <span
                     className={`text-[10px] ml-auto ${isDark ? "text-slate-500" : "text-slate-400"}`}
                   >
-                    {group.records.length} 次
+                    {group.records.length} 条
                   </span>
                 </div>
 
@@ -402,29 +428,89 @@ export function WrongNotebook({ levels }: WrongNotebookProps) {
                 {group.records.map((record) => {
                   const isSelected = selectedRecord?.id === record.id;
                   return (
-                    <button
-                      key={record.id}
-                      onClick={() => {
-                        setSelectedRecord(record);
-                        setMobileShowDetail(true);
-                      }}
-                      className={`w-full text-left px-5 py-3 flex items-start gap-3 transition-colors cursor-pointer border-l-2 ${
-                        isSelected
-                          ? isDark
-                            ? "bg-slate-800/80 border-blue-500"
-                            : "bg-blue-50/80 border-blue-500"
-                          : isDark
-                            ? "border-transparent hover:bg-slate-800/40"
-                            : "border-transparent hover:bg-slate-50"
-                      }`}
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-md flex items-center justify-center mt-0.5 flex-shrink-0 ${
-                          isDark ? "bg-red-500/10" : "bg-red-50"
+                    <div key={record.id} className="group relative">
+                      <button
+                        onClick={() => {
+                          setSelectedRecord(record);
+                          setMobileShowDetail(true);
+                        }}
+                        className={`w-full text-left px-5 py-3 pr-14 flex items-start gap-3 transition-colors cursor-pointer border-l-2 ${
+                          isSelected
+                            ? isDark
+                              ? "bg-slate-800/80 border-blue-500"
+                              : "bg-blue-50/80 border-blue-500"
+                            : isDark
+                              ? "border-transparent hover:bg-slate-800/40"
+                              : "border-transparent hover:bg-slate-50"
                         }`}
                       >
+                        <div
+                          className={`w-6 h-6 rounded-md flex items-center justify-center mt-0.5 flex-shrink-0 ${
+                            isDark ? "bg-red-500/10" : "bg-red-50"
+                          }`}
+                        >
+                          <svg
+                            className={`w-3.5 h-3.5 ${isDark ? "text-red-400" : "text-red-500"}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <code
+                            className={`text-xs font-mono block truncate ${
+                              isDark ? "text-amber-400" : "text-amber-600"
+                            }`}
+                          >
+                            $ {record.detail?.command || "(空)"}
+                          </code>
+                          <div
+                            className={`text-[10px] mt-1 truncate ${isDark ? "text-slate-500" : "text-slate-400"}`}
+                          >
+                            {record.detail?.output?.slice(0, 60) || "无输出"}
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 flex-shrink-0">
+                          {record.attemptCount > 1 && (
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-0.5 ${
+                                isDark
+                                  ? "bg-red-500/10 text-red-400"
+                                  : "bg-red-50 text-red-500"
+                              }`}
+                            >
+                              {record.attemptCount}次
+                            </span>
+                          )}
+                          <span
+                            className={`text-[10px] mt-0.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}
+                          >
+                            {formatTime(record.createdAt)}
+                          </span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleArchive(record.id);
+                        }}
+                        className={`absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all cursor-pointer opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto ${
+                          isDark
+                            ? "bg-slate-800 text-slate-400 hover:text-amber-300 hover:bg-amber-500/10"
+                            : "bg-white text-slate-400 hover:text-amber-600 hover:bg-amber-50 shadow-sm"
+                        }`}
+                        title="归档这条错题"
+                        aria-label="归档这条错题"
+                      >
                         <svg
-                          className={`w-3.5 h-3.5 ${isDark ? "text-red-400" : "text-red-500"}`}
+                          className="w-4 h-4"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -433,30 +519,11 @@ export function WrongNotebook({ levels }: WrongNotebookProps) {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
+                            d="M20.25 6.375H3.75m16.5 0-1.125 11.25a2.25 2.25 0 01-2.239 2.025H7.114a2.25 2.25 0 01-2.239-2.025L3.75 6.375m16.5 0-1.286-1.543A2.25 2.25 0 0017.236 4H6.764a2.25 2.25 0 00-1.728.832L3.75 6.375m8.25 3v4.5m0 0 1.875-1.875M12 13.875 10.125 12"
                           />
                         </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <code
-                          className={`text-xs font-mono block truncate ${
-                            isDark ? "text-amber-400" : "text-amber-600"
-                          }`}
-                        >
-                          $ {record.detail?.command || "(空)"}
-                        </code>
-                        <div
-                          className={`text-[10px] mt-1 truncate ${isDark ? "text-slate-500" : "text-slate-400"}`}
-                        >
-                          {record.detail?.output?.slice(0, 60) || "无输出"}
-                        </div>
-                      </div>
-                      <span
-                        className={`text-[10px] flex-shrink-0 mt-0.5 ${isDark ? "text-slate-600" : "text-slate-400"}`}
-                      >
-                        {formatTime(record.createdAt)}
-                      </span>
-                    </button>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -476,7 +543,7 @@ export function WrongNotebook({ levels }: WrongNotebookProps) {
             record={selectedRecord}
             level={levels.find((l) => l.id === selectedRecord.levelId)}
             isDark={isDark}
-            onDelete={handleDelete}
+            onArchive={handleArchive}
             onBack={() => setMobileShowDetail(false)}
           />
         ) : (
@@ -497,13 +564,13 @@ function DetailPanel({
   record,
   level,
   isDark,
-  onDelete,
+  onArchive,
   onBack,
 }: {
   record: WrongRecord;
   level: Level | undefined;
   isDark: boolean;
-  onDelete: (id: number) => void;
+  onArchive: (id: number) => void;
   onBack: () => void;
 }) {
   const ch = level?.chapter || 0;
@@ -554,6 +621,17 @@ function DetailPanel({
               >
                 Level {record.levelId}
               </span>
+              {record.attemptCount > 1 && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    isDark
+                      ? "bg-red-500/10 text-red-400"
+                      : "bg-red-50 text-red-500"
+                  }`}
+                >
+                  已错 {record.attemptCount} 次
+                </span>
+              )}
             </div>
             <h3
               className={`text-lg font-bold ${isDark ? "text-white" : "text-slate-900"}`}
@@ -693,14 +771,14 @@ function DetailPanel({
           记录 #{record.id}
         </span>
         <button
-          onClick={() => onDelete(record.id)}
+          onClick={() => onArchive(record.id)}
           className={`text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
             isDark
-              ? "text-slate-400 hover:text-red-400 hover:bg-red-500/10"
-              : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+              ? "text-slate-400 hover:text-amber-300 hover:bg-amber-500/10"
+              : "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
           }`}
         >
-          删除此记录
+          归档这条错题
         </button>
       </div>
     </div>
@@ -714,105 +792,74 @@ function ErrorAnalysis({
   record: WrongRecord;
   isDark: boolean;
 }) {
-  const output = record.detail?.output || "";
-  const command = record.detail?.command || "";
-
-  let errorType = "unknown";
-  let errorLabel = "未知错误";
-  let errorDesc = "";
-
-  if (/permission denied/i.test(output) || /are you root/i.test(output)) {
-    errorType = "permission";
-    errorLabel = "权限不足";
-    errorDesc = "命令需要 root 权限，尝试在命令前加上 sudo。";
-  } else if (/no such file|not found|cannot access/i.test(output)) {
-    errorType = "notfound";
-    errorLabel = "文件/路径不存在";
-    errorDesc = "目标文件或路径不存在，请先确认路径是否正确。";
-  } else if (/syntax error/i.test(output)) {
-    errorType = "syntax";
-    errorLabel = "语法错误";
-    errorDesc = "脚本存在语法问题，仔细检查 if/then/fi 等配对关键字。";
-  } else if (/command not found/i.test(output)) {
-    errorType = "command";
-    errorLabel = "命令未找到";
-    errorDesc = "系统没有安装该命令，请先使用 apk add 安装对应的包。";
-  } else if (output.trim().length === 0) {
-    errorType = "empty";
-    errorLabel = "命令无输出";
-    errorDesc = "命令执行成功但没有产生期望的输出，检查命令参数是否正确。";
-  } else if (command.trim().length === 0) {
-    errorType = "empty";
-    errorLabel = "空命令";
-    errorDesc = "没有输入任何命令就提交了，请先输入对应的 Linux 命令。";
-  } else {
-    errorType = "logic";
-    errorLabel = "逻辑错误";
-    errorDesc = "命令可以执行但结果不符合预期，对照提示重新思考解决思路。";
-  }
-
-  const typeStyles: Record<
-    string,
-    { bg: string; text: string; darkBg: string; darkText: string }
-  > = {
-    permission: {
-      bg: "bg-orange-50",
-      text: "text-orange-600",
-      darkBg: "bg-orange-500/10",
-      darkText: "text-orange-400",
-    },
-    notfound: {
-      bg: "bg-red-50",
-      text: "text-red-600",
-      darkBg: "bg-red-500/10",
-      darkText: "text-red-400",
-    },
-    syntax: {
-      bg: "bg-purple-50",
-      text: "text-purple-600",
-      darkBg: "bg-purple-500/10",
-      darkText: "text-purple-400",
-    },
-    command: {
-      bg: "bg-amber-50",
-      text: "text-amber-600",
-      darkBg: "bg-amber-500/10",
-      darkText: "text-amber-400",
-    },
-    empty: {
-      bg: "bg-slate-50",
-      text: "text-slate-600",
-      darkBg: "bg-slate-500/10",
-      darkText: "text-slate-400",
-    },
-    logic: {
-      bg: "bg-blue-50",
-      text: "text-blue-600",
-      darkBg: "bg-blue-500/10",
-      darkText: "text-blue-400",
-    },
-    unknown: {
-      bg: "bg-slate-50",
-      text: "text-slate-600",
-      darkBg: "bg-slate-500/10",
-      darkText: "text-slate-400",
-    },
-  };
-
-  const style = typeStyles[errorType] || typeStyles.unknown;
+  const analysis = classifyError(
+    record.detail?.command || "",
+    record.detail?.output || "",
+    record.errorType,
+  );
+  const style = errorTypeStyles[analysis.type];
 
   return (
-    <div>
+    <div className="space-y-4">
       <div className="flex items-center gap-2 mb-3">
         <span
           className={`text-xs px-2 py-0.5 rounded-full font-medium ${isDark ? style.darkBg + " " + style.darkText : style.bg + " " + style.text}`}
         >
-          {errorLabel}
+          {analysis.label}
         </span>
       </div>
       <p className={`text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`}>
-        {errorDesc}
+        {analysis.description}
       </p>
+      <div>
+        <div
+          className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
+            isDark ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          改进建议
+        </div>
+        <ul className="space-y-2">
+          {analysis.advice.map((item) => (
+            <li
+              key={item}
+              className={`text-sm flex items-start gap-2 ${
+                isDark ? "text-slate-300" : "text-slate-600"
+              }`}
+            >
+              <span
+                className={`mt-1.5 h-1.5 w-1.5 rounded-full ${
+                  isDark ? "bg-slate-500" : "bg-slate-400"
+                }`}
+              />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <div
+          className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
+            isDark ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          相关命令
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {analysis.relatedCommands.map((relatedCommand) => (
+            <code
+              key={relatedCommand}
+              className={`px-2 py-1 rounded-lg text-xs font-mono ${
+                isDark
+                  ? "bg-slate-900 text-slate-300 ring-1 ring-slate-700/60"
+                  : "bg-slate-50 text-slate-700 ring-1 ring-slate-200"
+              }`}
+            >
+              {relatedCommand}
+            </code>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
