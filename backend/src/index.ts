@@ -105,6 +105,7 @@ io.on("connection", (socket) => {
         socket.emit("terminal:output", {
           output: result.output,
           currentDir: result.currentDir,
+          completed: result.completed,
         });
 
         // Check if level is completed
