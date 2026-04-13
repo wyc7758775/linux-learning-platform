@@ -104,27 +104,6 @@ body {
   }
 }
 
-/* Tab 切换动画 — macOS 风格纯 Fade */
-@keyframes tab-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes tab-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-.tab-enter-notebook,
-.tab-enter-learn {
-  animation: tab-fade-in 0.25s ease-out forwards;
-}
-
-.tab-exit-notebook,
-.tab-exit-learn {
-  animation: tab-fade-out 0.2s ease-in forwards;
-}
-
 /* 侧边栏滚动容器 - 预留滚动条空间 */
 .sidebar-scroll {
   scrollbar-gutter: stable;
