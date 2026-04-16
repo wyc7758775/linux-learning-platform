@@ -1,0 +1,53 @@
+export function getTerminalTheme(isDark: boolean) {
+  if (isDark) {
+    return {
+      background: '#0f172a',
+      foreground: '#94a3b8',
+      cursor: '#22c55e',
+      cursorAccent: '#0f172a',
+      selectionBackground: '#22c55e33',
+      selectionForeground: '#ffffff',
+      black: '#0f172a',
+      red: '#f87171',
+      green: '#22c55e',
+      yellow: '#fbbf24',
+      blue: '#60a5fa',
+      magenta: '#c084fc',
+      cyan: '#22d3ee',
+      white: '#f8fafc',
+      brightBlack: '#475569',
+      brightRed: '#fca5a5',
+      brightGreen: '#4ade80',
+      brightYellow: '#fcd34d',
+      brightBlue: '#93c5fd',
+      brightMagenta: '#d8b4fe',
+      brightCyan: '#67e8f9',
+      brightWhite: '#ffffff',
+    }
+  }
+
+  return {
+    background: '#f8fafc',
+    foreground: '#334155',
+    cursor: '#059669',
+    cursorAccent: '#f8fafc',
+    selectionBackground: '#05966933',
+    selectionForeground: '#0f172a',
+    black: '#1e293b',
+    red: '#dc2626',
+    green: '#059669',
+    yellow: '#d97706',
+    blue: '#2563eb',
+    magenta: '#9333ea',
+    cyan: '#0891b2',
+    white: '#1e293b',
+    brightBlack: '#64748b',
+    brightRed: '#ef4444',
+    brightGreen: '#10b981',
+    brightYellow: '#f59e0b',
+    brightBlue: '#3b82f6',
+    brightMagenta: '#a855f7',
+    brightCyan: '#06b6d4',
+    brightWhite: '#0f172a',
+  }
+}
