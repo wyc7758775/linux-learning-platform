@@ -1,0 +1,15 @@
+export const PRIVILEGED_COMMANDS = [
+  'adduser',
+  'useradd',
+  'userdel',
+  'usermod',
+  'groupadd',
+  'groupdel',
+  'groupmod',
+  'passwd',
+  'chown',
+  'chgrp',
+  'nginx',
+  'systemctl',
+  'service',
+]

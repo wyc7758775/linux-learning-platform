@@ -31,6 +31,19 @@ class FakeExec {
   }
 }
 
+class HangingExec {
+  async start(): Promise<NodeJS.ReadableStream> {
+    return new PassThrough()
+  }
+
+  async inspect(): Promise<{ Running: boolean; ExitCode: number }> {
+    return {
+      Running: true,
+      ExitCode: 0,
+    }
+  }
+}
+
 class FakeContainer {
   public readonly execCalls: Array<Record<string, unknown>> = []
   public started = false
@@ -54,6 +67,10 @@ class FakeContainer {
     const command = Array.isArray(options.Cmd)
       ? options.Cmd.join(' ')
       : ''
+
+    if (command.includes('sleep-forever')) {
+      return new HangingExec() as unknown as FakeExec
+    }
 
     if (options.User === 'player') {
       return new FakeExec(`[${this.id}] ${command}`)
@@ -306,6 +323,26 @@ describe('ContainerManager lifecycle management', () => {
 
     expect(getPoolSize(manager)).toBe(1)
     expect(docker.createdContainers).toHaveLength(1)
+
+    await manager.cleanup()
+  })
+
+  it('returns a timeout hint when a player command never exits', async () => {
+    vi.useFakeTimers()
+
+    const docker = new FakeDocker()
+    const manager = new ContainerManager({
+      docker: docker as never,
+      poolSize: 0,
+    })
+
+    const session = await manager.createContainer(1)
+    const resultPromise = manager.executeCommand(session.id, 'sleep-forever')
+
+    await vi.advanceTimersByTimeAsync(10_000)
+    const result = await resultPromise
+
+    expect(result.output).toContain('命令执行超时')
 
     await manager.cleanup()
   })
